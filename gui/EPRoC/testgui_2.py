@@ -134,6 +134,10 @@ class ODMRGui(GUIBase):
         self._mw.sweep_power_DoubleSpinBox.setMaximum(constraints.max_power)
         self._mw.sweep_power_DoubleSpinBox.setMinimum(constraints.min_power)
 
+
+        self._mw.lockin_taua_comboBox.addItems(self.lockin)
+
+
         # Add grid layout for ranges
         groupBox = QtWidgets.QGroupBox(self._mw.dockWidgetContents_3)
         groupBox.setAlignment(QtCore.Qt.AlignLeft)
@@ -398,6 +402,7 @@ class ODMRGui(GUIBase):
         self._mw.lockin_phase_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
         self._mw.lockin_phase1_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
         self._mw.harmonic_spinBox.valueChanged.connect(self.change_lockin_params)
+#        self._mw.external_reference_checkBox.clicked(self.change_lockin_reference)
 
         # Control/values-changed signals to logic
         self.sigFmOn.connect(self._odmr_logic.fm_modulation_on, QtCore.Qt.QueuedConnection)

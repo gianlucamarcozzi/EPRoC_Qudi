@@ -23,6 +23,9 @@ class LockinAnfatec(Base, LockinInterface):
     _address = ConfigOption('gpib_address', missing='error')
     _delay = 0.1
 
+    tau_values = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001,
+                  0.0005, 0.0002]
+
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
         with open(os.devnull, 'w') as DEVNULL:
@@ -36,7 +39,16 @@ class LockinAnfatec(Base, LockinInterface):
     def on_deactivate(self):
         return
 
-    def get_value(self, param):
+    def get_values(self):
+        """
+        values of Tau and
+        :return:
+        """
+        tau_values = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001,
+                      0.0005, 0.0002]
+        return tau_values
+
+    def get_actual_value(self, param):
         """
         get the value of a parameter from Lockin.ini
 
@@ -52,7 +64,6 @@ class LockinAnfatec(Base, LockinInterface):
         lines = r.text.split('\n')
         for line in lines:
             if param in line:
-                print(lines)
                 return line.split(' ')[1]
         return -1
 
@@ -68,7 +79,7 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_range = int(self.get_value('InputRange'))
+        actual_range = int(self.get_actual_value('InputRange'))
         return actual_range
 
     def set_coupling_type(self, coupl):
@@ -101,8 +112,8 @@ class LockinAnfatec(Base, LockinInterface):
             url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
             r = requests.get(url)
             time.sleep(self._delay)
-        actual_tauA = int(self.get_value('Timeconstant'))
-        actual_tau1 = int(self.get_value('TimeConstLoL'))  # can improve this using classes
+        actual_tauA = int(self.get_actual_value('Timeconstant'))
+        actual_tau1 = int(self.get_actual_value('TimeConstLoL'))  # can improve this using classes
         return actual_tauA, actual_tau1
 
     def set_sync_filter_settings(self, val):
@@ -115,8 +126,8 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_val = int(self.get_value('Sync0'))
-        syncLoL = int(self.get_value('SyncLoL'))  # confused about this syncLoL thing that changes accordingly to Sync0
+        actual_val = int(self.get_actual_value('Sync0'))
+        syncLoL = int(self.get_actual_value('SyncLoL'))  # confused about this syncLoL thing that changes accordingly to Sync0
         return actual_val, syncLoL
 
     def set_rolloff(self, dB):
@@ -129,8 +140,8 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_slope = int(self.get_value('Rolloff'))
-        actual_slope2 = int(self.get_value('RollOffLoL'))
+        actual_slope = int(self.get_actual_value('Rolloff'))
+        actual_slope2 = int(self.get_actual_value('RollOffLoL'))
         return actual_slope, actual_slope2
 
     def set_input_config(self, i):
@@ -142,7 +153,7 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_config = int(self.get_value('InputMode'))
+        actual_config = int(self.get_actual_value('InputMode'))
         return actual_config
 
     def set_amplitude(self, uac):
@@ -150,7 +161,7 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_uac = float(self.get_value('Amplitude'))
+        actual_uac = float(self.get_actual_value('Amplitude'))
         return actual_uac
 
     def set_frequency(self, f):
@@ -163,13 +174,13 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_freq = float(self.get_value('Frequency'))
+        actual_freq = float(self.get_actual_value('Frequency'))
         return actual_freq
 
     def set_phases(self, phase=None, phase0=None):
         if phase is not None:
             query = '8D59_' + str(phase) + '_'
-            url = ('http://'+self._address+'/cgi-bin/remote.cgi?'+query)
+            url = ('http://'+self._address+'/cgi-bin/remote.cgi?' + query)
             r = requests.get(url)
             time.sleep(self._delay)
         if phase0 is not None:
@@ -177,16 +188,16 @@ class LockinAnfatec(Base, LockinInterface):
             url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
             r = requests.get(url)
             time.sleep(self._delay)
-        actual_phase = float(self.get_value('Phase'))
-        actual_phase0 = float(self.get_value('Phase0'))
+        actual_phase = float(self.get_actual_value('Phase'))
+        actual_phase0 = float(self.get_actual_value('Phase0'))
         return actual_phase, actual_phase0
 
     def set_harmonic(self, i):
         query = '8D1_' + str(i) + '_'
-        url = ('http://'+ self._address +'/cgi-bin/remote.cgi?'+query)
+        url = ('http://'+ self._address +'/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_harmonic = int(self.get_value('Harmonic'))
+        actual_harmonic = int(self.get_actual_value('Harmonic'))
         return actual_harmonic
 
     def change_reference(self, ref):
@@ -203,5 +214,5 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_ref = int(self.get_value('RefInFlag'))
+        actual_ref = int(self.get_actual_value('RefInFlag'))
         return actual_ref
