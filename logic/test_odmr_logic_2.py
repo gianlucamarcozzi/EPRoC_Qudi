@@ -73,6 +73,23 @@ class ODMRLogic(GenericLogic):
     lines_to_average = StatusVar('lines_to_average', 0)
     _oversampling = StatusVar('oversampling', default=10)
     _lock_in_active = StatusVar('lock_in_active', default=False)
+    lockin_range = StatusVar('lockin_range', 1.)
+    coupl = StatusVar('coupl', 'ac')
+    tauA = StatusVar('tauA', 1)
+    tauB = StatusVar('tauB', 1)
+    slope = StatusVar('slope', 6)
+    config = StatusVar('config', 'A&B')
+    amplitude = StatusVar('amplitude', 0)
+    int_freq = StatusVar('int_freq', 0)
+    phase = StatusVar('phase', 0)
+    phase1 = StatusVar('phase1', 0)
+    harmonic = StatusVar('harmonic', 1)
+    waiting_time_factor = StatusVar('waiting_time_factor', 1)
+
+
+
+
+
 
     # Internal signals
     sigNextLine = QtCore.Signal()
@@ -270,7 +287,7 @@ class ODMRLogic(GenericLogic):
             self.final_freq_list = np.array(final_freq_list)
 
         self.odmr_plot_x = np.array(self.final_freq_list)
-        self.odmr_plot_y = np.zeros([1, self.odmr_plot_x.size])
+        self.odmr_plot_y = np.zeros([self.odmr_plot_x.size, 2])
         # self.odmr_plot_y = np.zeros([len(self.get_LOCKIN_channels()), self.odmr_plot_x.size]) to be used when there will be more than one channel
 
         """
@@ -513,16 +530,19 @@ class ODMRLogic(GenericLogic):
                 # not sure if I should use these variable down here or others
                 self.fm_shape, self.fm_freq, self.fm_dev, self.fm_mode = self._mw_device.set_fm(shape, freq, dev, mode)
 
-        param_dict = {'fm_shape': self.fm_shape, 'fm_freq': self.fm_freq, 'fm_dev': self.fm_dev,
-                      'fm_mode': self.fm_mode}
+        param_dict = {#'fm_shape': self.fm_shape,
+                     'fm_freq': self.fm_freq, 'fm_dev': self.fm_dev
+                      # 'fm_mode': self.fm_mode
+        }
         self.sigParameterUpdated.emit(param_dict)
         return self.fm_shape, self.fm_freq, self.fm_dev, self.fm_mode
 
-    def set_lockin_parameters(self, lockin_range, coupl, tauA, tauB, slope, config, amplitude, int_freq, ext_freq,
+    def set_lockin_parameters(self, lockin_range, coupl, tauA, tauB, slope, config, amplitude, int_freq,
                               phase, phase1, harmonic, waiting_time_factor):
+        print('logic1')
         if self.module_state() != 'locked':
             if isinstance(lockin_range, (int, float)) and isinstance(amplitude, (int, float)) and \
-                    isinstance(int_freq, (int, float)) and isinstance(ext_freq, (int, float)) and \
+                    isinstance(int_freq, (int, float)) and \
                     isinstance(phase, (int, float)) and isinstance(phase1, (int, float)) and \
                     isinstance(harmonic, (int, float)):
                 # not sure if I should use these variable down here or others
@@ -532,11 +552,12 @@ class ODMRLogic(GenericLogic):
                 self.slope = self._lockin_device.set_rolloff(slope)
                 self.config = self._lockin_device.set_input_config(config)
                 self.amplitude = self._lockin_device.set_amplitude(amplitude)
+                print(int_freq)
                 self.int_freq = self._lockin_device.set_frequency(int_freq)
-                # self.ext_freq =
                 self.phase, self.phase1 = self._lockin_device.set_phases(phase, phase1)
                 self.harmonic = self._lockin_device.set_harmonic(harmonic)
                 self.waiting_time_factor = waiting_time_factor
+                print('logic2')
 
         param_dict = {'lockin_range': self.lockin_range, 'coupl': self.coupl, 'tauA': self.tauA, 'tauB': self.tauB,
                       'slope': self.slope, 'config': self.config, 'amplitude': self.amplitude,
@@ -546,8 +567,7 @@ class ODMRLogic(GenericLogic):
                       'harmonic': self.harmonic,
                       'waiting_time_factor': self.waiting_time_factor}
         self.sigParameterUpdated.emit(param_dict)
-        return self.lockin_range, self.coupl, self.tauA, self.tauB, self.slope, self.config, self.amplitude, self.phase, self.phase1, self.harmonic, self.waiting_time_factor
-                # self.int_freq, # self.ext_freq,
+        return self.lockin_range, self.coupl, self.tauA, self.tauB, self.slope, self.config, self.amplitude, self.int_freq, self.phase, self.phase1, self.harmonic, self.waiting_time_factor
 
     def set_scan_parameters(self, number_of_sweeps, number_of_accumulations):
         if self.module_state() != 'locked':
@@ -580,7 +600,6 @@ class ODMRLogic(GenericLogic):
                 if err_code < 0:
                     self.log.error('Activation of microwave output failed.')
 
-        dummy = self._lockin_device.set_amplitude(0.2)
         mode, is_running = self._mw_device.get_status()
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
@@ -869,7 +888,7 @@ class ODMRLogic(GenericLogic):
             # self.fc.clear_result()
 
             self.elapsed_sweeps = 0
-            self.current_frequency_index = 0    # maybe this could be called elapsed_frequency_index to be coherent, but I think there should be some changes in the rest of the code then
+            self.actual_frequency_index = 0    # maybe this could be called elapsed_frequency_index to be coherent, but I think there should be some changes in the rest of the code then
             # can be modified, look at lockin manual
             self.waiting_time = 0.3 * self.waiting_time_factor # in seconds
 
@@ -883,8 +902,8 @@ class ODMRLogic(GenericLogic):
             self.raw_data = np.zeros(
                 [self.number_of_sweeps,
                 self.number_of_accumulations,
-                self.odmr_plot_x.size],
-                2# number of channels {2 or 4}
+                self.odmr_plot_x.size,
+                2] # number of channels {2 or 4}
             )
 
             # if freq_sweep
@@ -1096,7 +1115,7 @@ class ODMRLogic(GenericLogic):
                 average_last_line = np.mean(self.raw_data[self.elapsed_sweeps, :, :self.actual_frequency_index + 1, :], axis=0) #axis = 0 in this case means an average over accumulations
 
                 for i in range(len(average_last_line)):
-                    self.odmr_plot_y[i] = average_last_line[i]
+                    self.odmr_plot_y[i,:] = average_last_line[i,:]
             else:
                 average_full_sweeps = np.mean(self.raw_data[:self.elapsed_sweeps, :, :, :],
                                               axis=(0, 1))
@@ -1179,92 +1198,90 @@ class ODMRLogic(GenericLogic):
             self.odmr_fit_x, self.odmr_fit_y, result_str_dict, self.fc.current_fit)
         return
 
-    def save_odmr_data(self, tag=None):
+    def save_odmr_data(self, tag=None, colorscale_range=None, percentile_range=None):
         """ Saves the current ODMR data to a file."""
         timestamp = datetime.datetime.now()
         filepath = self._save_logic.get_path_for_module(module_name='ODMR')
 
         if tag is None:
             tag = ''
-        '''
+
         for nch, channel in enumerate(self.get_odmr_channels()):
             # first save raw data for each channel
             if len(tag) > 0:
                 filelabel_raw = '{0}_ODMR_data_ch{1}_raw'.format(tag, nch)
             else:
                 filelabel_raw = 'ODMR_data_ch{0}_raw'.format(nch)
-        '''
-        final_data = OrderedDict()
-        final_data['frequency (Hz)'] = self.odmr_plot_x
-        final_data['channel 1'] = self.odmr_plot_y[:, 0]
-        final_data['channel 2'] = self.odmr_plot_y[:, 1]
-        parameters = OrderedDict()
-        parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
-        parameters['Microwave Sweep Power (dBm)'] = self.sweep_mw_power
-        # parameters['Run Time (s)'] = self.run_time
-        parameters['Number of frequency sweeps (#)'] = self.elapsed_sweeps
-        parameters['Start Frequencies (Hz)'] = self.mw_starts
-        parameters['Stop Frequencies (Hz)'] = self.mw_stops
-        parameters['Step sizes (Hz)'] = self.mw_steps
-        # parameters['Clock Frequencies (Hz)'] = self.clock_frequency
-        # parameters['Channel'] = '{0}: {1}'.format(nch, channel)
-        self._save_logic.save_data(final_data,
-                                   filepath=filepath,
-                                   parameters=parameters,
-                                   filelabel=filelabel_raw,
-                                   fmt='%.6e',
-                                   delimiter='\t',
-                                   timestamp=timestamp)
-        '''
-        # now create a plot for each scan range
-        data_start_ind = 0
-        for ii, frequency_arr in enumerate(self.frequency_lists):
-            if len(tag) > 0:
-                filelabel = '{0}_ODMR_data_ch{1}_range{2}'.format(tag, nch, ii)
-            else:
-                filelabel = 'ODMR_data_ch{0}_range{1}'.format(nch, ii)
 
-            # prepare the data in a dict or in an OrderedDict:
-            data = OrderedDict()
-            data['frequency (Hz)'] = frequency_arr
-
-            num_points = len(frequency_arr)
-            data_end_ind = data_start_ind + num_points
-            data['count data (counts/s)'] = self.odmr_plot_y[nch][data_start_ind:data_end_ind]
-            data_start_ind += num_points
-
+            data_raw = OrderedDict()
+            data_raw['count data (counts/s)'] = self.odmr_raw_data[:self.elapsed_sweeps, nch, :]
             parameters = OrderedDict()
             parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
             parameters['Microwave Sweep Power (dBm)'] = self.sweep_mw_power
             parameters['Run Time (s)'] = self.run_time
             parameters['Number of frequency sweeps (#)'] = self.elapsed_sweeps
-            parameters['Start Frequency (Hz)'] = frequency_arr[0]
-            parameters['Stop Frequency (Hz)'] = frequency_arr[-1]
-            parameters['Step size (Hz)'] = frequency_arr[1] - frequency_arr[0]
+            parameters['Start Frequencies (Hz)'] = self.mw_starts
+            parameters['Stop Frequencies (Hz)'] = self.mw_stops
+            parameters['Step sizes (Hz)'] = self.mw_steps
             parameters['Clock Frequencies (Hz)'] = self.clock_frequency
             parameters['Channel'] = '{0}: {1}'.format(nch, channel)
-            parameters['frequency range'] = str(ii)
-
-            key = 'channel: {0}, range: {1}'.format(nch, ii)
-            if key in self.fits_performed.keys():
-                parameters['Fit function'] = self.fits_performed[key][3]
-                for name, param in self.fits_performed[key][2].params.items():
-                    parameters[name] = str(param)
-            # add all fit parameter to the saved data:
-
-            fig = self.draw_figure(nch, ii,
-                                   cbar_range=colorscale_range,
-                                   percentile_range=percentile_range)
-
-            self._save_logic.save_data(data,
+            self._save_logic.save_data(data_raw,
                                        filepath=filepath,
                                        parameters=parameters,
-                                       filelabel=filelabel,
+                                       filelabel=filelabel_raw,
                                        fmt='%.6e',
                                        delimiter='\t',
-                                       timestamp=timestamp,
-                                       plotfig=fig)
-        '''
+                                       timestamp=timestamp)
+
+            # now create a plot for each scan range
+            data_start_ind = 0
+            for ii, frequency_arr in enumerate(self.frequency_lists):
+                if len(tag) > 0:
+                    filelabel = '{0}_ODMR_data_ch{1}_range{2}'.format(tag, nch, ii)
+                else:
+                    filelabel = 'ODMR_data_ch{0}_range{1}'.format(nch, ii)
+
+                # prepare the data in a dict or in an OrderedDict:
+                data = OrderedDict()
+                data['frequency (Hz)'] = frequency_arr
+
+                num_points = len(frequency_arr)
+                data_end_ind = data_start_ind + num_points
+                data['count data (counts/s)'] = self.odmr_plot_y[nch][data_start_ind:data_end_ind]
+                data_start_ind += num_points
+
+                parameters = OrderedDict()
+                parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
+                parameters['Microwave Sweep Power (dBm)'] = self.sweep_mw_power
+                parameters['Run Time (s)'] = self.run_time
+                parameters['Number of frequency sweeps (#)'] = self.elapsed_sweeps
+                parameters['Start Frequency (Hz)'] = frequency_arr[0]
+                parameters['Stop Frequency (Hz)'] = frequency_arr[-1]
+                parameters['Step size (Hz)'] = frequency_arr[1] - frequency_arr[0]
+                parameters['Clock Frequencies (Hz)'] = self.clock_frequency
+                parameters['Channel'] = '{0}: {1}'.format(nch, channel)
+                parameters['frequency range'] = str(ii)
+
+                key = 'channel: {0}, range: {1}'.format(nch, ii)
+                if key in self.fits_performed.keys():
+                    parameters['Fit function'] = self.fits_performed[key][3]
+                    for name, param in self.fits_performed[key][2].params.items():
+                        parameters[name] = str(param)
+                # add all fit parameter to the saved data:
+
+                fig = self.draw_figure(nch, ii,
+                                       cbar_range=colorscale_range,
+                                       percentile_range=percentile_range)
+
+                self._save_logic.save_data(data,
+                                           filepath=filepath,
+                                           parameters=parameters,
+                                           filelabel=filelabel,
+                                           fmt='%.6e',
+                                           delimiter='\t',
+                                           timestamp=timestamp,
+                                           plotfig=fig)
+
         self.log.info('ODMR data saved to:\n{0}'.format(filepath))
         return
 
