@@ -354,6 +354,20 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         else:
             return TriggerEdge.RISING, timing
 
+    def set_int_trigger(self):
+        """
+        Set internal trigger to STEP (one trigger equals next frequency) and to stop at the end of the frequency sweep.
+        """
+        mode, is_running = self.get_status()
+        if is_running:
+            self.off()
+
+        self._command_wait(':SWE:MODE STEP')
+
+        self._command_wait(':FSW:SOUR SING')
+
+        return
+
     def trigger(self):
         """ Trigger the next element in the list or sweep mode programmatically.
         @return int: error code (0:OK, -1:error)
@@ -435,7 +449,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
     def set_fm(self, fm_shape = None, fm_freq = None, fm_deviation=None, fm_mode=None):
         '''
         @param float deviation:
-        @param str (or int) source: {EXT1|NOISe|LF2|LF1|INTernal|EXTernal}
+        @param str (or int) source: {EXT1|NOISe|LF1|LF2|INTernal|EXTernal}
         @param str (or int) deviation_mode: {UNCouples|TOtal|RATio}
         @param str (or int) mode: {HBANdwidth|LNOise}
         there are other parameters that can be set through remote operation (sum and ratio).

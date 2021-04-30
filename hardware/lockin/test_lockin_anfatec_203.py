@@ -199,9 +199,23 @@ class LockinAnfatec(Base, LockinInterface):
                          0: internal
                          1: external
         """
+        if ref == 'int':
+            ref = '-'
+        else:
+            ref = '+'
         query = '8DA' + ref + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
         actual_ref = int(self.get_value('RefInFlag'))
         return actual_ref
+
+    def get_data_lia(self):
+        url = ('http://' + self._address + '/data/lia.dat')
+        r = requests.get(url)
+        data_raw = r.text.replace(" ", "")
+        data = data_raw.split("\r\n")
+        for i in range(0, 4):
+            data[i] = float(data[i])
+        return data
+
