@@ -139,7 +139,13 @@ class ODMRGui(GUIBase):
         self._mw.sweep_power_DoubleSpinBox.setMaximum(constraints.max_power)
         self._mw.sweep_power_DoubleSpinBox.setMinimum(constraints.min_power)
 
+<<<<<<< HEAD
         self._mw.ext_ref_frequency_DoubleSpinBox.setEnabled(False)
+=======
+
+        self._mw.lockin_taua_comboBox.addItems(self.lockin)
+
+>>>>>>> 06fea0d5a1d7805167ff8af29e7a171f2e04ee1d
 
         # Add grid layout for ranges
         groupBox = QtWidgets.QGroupBox(self._mw.dockWidgetContents_3)
@@ -443,10 +449,14 @@ class ODMRGui(GUIBase):
         self._mw.lockin_phase_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
         self._mw.lockin_phase1_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
         self._mw.harmonic_spinBox.valueChanged.connect(self.change_lockin_params)
+<<<<<<< HEAD
         self._mw.waiting_time_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
 
         self._mw.number_of_sweeps_spinBox.valueChanged.connect(self.change_scan_params)
         self._mw.number_of_accumulations_spinBox.valueChanged.connect(self.change_scan_params)
+=======
+#        self._mw.external_reference_checkBox.clicked(self.change_lockin_reference)
+>>>>>>> 06fea0d5a1d7805167ff8af29e7a171f2e04ee1d
 
         # Control/values-changed signals to logic
         self.sigStartScan.connect(self._odmr_logic.start_scan, QtCore.Qt.QueuedConnection)
