@@ -44,7 +44,7 @@ class ODMRMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'test_ui_2.ui')
+        ui_file = os.path.join(this_dir, 'test_ui_2_final.ui')
 
         # Load it
         super(ODMRMainWindow, self).__init__()
@@ -139,8 +139,6 @@ class ODMRGui(GUIBase):
         self._mw.sweep_power_DoubleSpinBox.setMaximum(constraints.max_power)
         self._mw.sweep_power_DoubleSpinBox.setMinimum(constraints.min_power)
 
-        self._mw.ext_ref_frequency_DoubleSpinBox.setEnabled(False)
-
         # Add grid layout for ranges
         groupBox = QtWidgets.QGroupBox(self._mw.dockWidgetContents_3)
         groupBox.setAlignment(QtCore.Qt.AlignLeft)
@@ -215,6 +213,7 @@ class ODMRGui(GUIBase):
                 # setattr(self._mw.odmr_control_DockWidget, 'stop_freq_DoubleSpinBox_{}'.format(row),
                 #         stop_freq_DoubleSpinBox)
                 # add range
+                '''
                 add_range_button = QtWidgets.QPushButton(groupBox)
                 add_range_button.setText('Add Range')
                 add_range_button.setMinimumWidth(75)
@@ -234,7 +233,7 @@ class ODMRGui(GUIBase):
                 gridLayout.addWidget(remove_range_button, row, 8, 1, 1)
                 setattr(self._mw.odmr_control_DockWidget, 'remove_range_button',
                         remove_range_button)
-
+                '''
 #                matrix_range_label = QtWidgets.QLabel(groupBox)
 #                matrix_range_label.setText('Matrix Range:')
 #                matrix_range_label.setMinimumWidth(75)
@@ -422,7 +421,7 @@ class ODMRGui(GUIBase):
 #        self._mw.action_run_stop.triggered.connect(self.run_stop_odmr)
 #        self._mw.action_resume_odmr.triggered.connect(self.resume_odmr)
         self._mw.action_toggle_cw.triggered.connect(self.toggle_cw_mode)
-        self._mw.action_start_stop_scan.triggered.connect(self.start_stop_scan)
+        self._mw.action_run_stop.triggered.connect(self.start_stop_scan)
         self._mw.action_Save.triggered.connect(self.save_data)
 #        self._mw.action_RestoreDefault.triggered.connect(self.restore_defaultview)
 #        self._mw.do_fit_PushButton.clicked.connect(self.do_fit)
@@ -439,7 +438,6 @@ class ODMRGui(GUIBase):
         self._mw.lockin_config_comboBox.currentTextChanged.connect(self.change_lockin_params)
         self._mw.lockin_amplitude_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
         self._mw.int_ref_frequency_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
-        self._mw.ext_ref_frequency_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
         self._mw.lockin_phase_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
         self._mw.lockin_phase1_DoubleSpinBox.valueChanged.connect(self.change_lockin_params)
         self._mw.harmonic_spinBox.valueChanged.connect(self.change_lockin_params)
@@ -965,8 +963,8 @@ class ODMRGui(GUIBase):
     def update_plots(self, odmr_data_x, odmr_data_y):
         """ Refresh the plot widgets with new data. """
         # Update mean signal plot
-        self.channel1_image.setData(odmr_data_x, odmr_data_y[0])
-        self.channel2_image.setData(odmr_data_x, odmr_data_y[1])
+        self.channel1_image.setData(odmr_data_x, odmr_data_y[:, 0])
+        self.channel2_image.setData(odmr_data_x, odmr_data_y[:, 1])
 
 
         """
@@ -1339,11 +1337,9 @@ class ODMRGui(GUIBase):
 
     def on_off_external_reference(self, is_checked):
         if is_checked:
-            self._mw.ext_ref_frequency_DoubleSpinBox.setEnabled(True)
             self._mw.int_ref_frequency_DoubleSpinBox.setEnable(False)
             self.sigExtRefOn.emit()
         else:
-            self._mw.ext_ref_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.int_ref_frequency_DoubleSpinBox.setEnable(True)
             self.sigExtRefOff.emit()
         return
@@ -1361,12 +1357,11 @@ class ODMRGui(GUIBase):
         config = self._mw.lockin_config_comboBox.currentIndex()
         amplitude = self._mw.lockin_amplitude_DoubleSpinBox.value()
         int_freq = self._mw.int_ref_frequency_DoubleSpinBox.value()
-        ext_freq = self._mw.ext_ref_frequency_DoubleSpinBox.value()
         phase = self._mw.lockin_phase_DoubleSpinBox.value()
         phase1 = self._mw.lockin_phase1_DoubleSpinBox.value()
         harmonic = self._mw.harmonic_spinBox.value()
         waiting_time_factor = self._mw.waiting_time_factor_spinBox.value()
-        self.sigLockinParamsChanged.emit(lockin_range, coupl, tauA, tauB, slope, config, amplitude, int_freq, ext_freq,
+        self.sigLockinParamsChanged.emit(lockin_range, coupl, tauA, tauB, slope, config, amplitude, int_freq,
                                          phase, phase1, harmonic, waiting_time_factor)
         return
 

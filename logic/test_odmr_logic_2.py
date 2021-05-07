@@ -147,7 +147,7 @@ class ODMRLogic(GenericLogic):
         self.raw_data = np.zeros(
             [self.number_of_sweeps,
              self.number_of_accumulations,
-             self.odmr_plot_x.size]
+             self.odmr_plot_x.size, 2]
             # number of channels {2 or 4}
         )
 
@@ -239,6 +239,7 @@ class ODMRLogic(GenericLogic):
         self.odmr_plot_x = np.array(self.final_freq_list)
         self.odmr_plot_y = np.zeros([len(self.get_odmr_channels()), self.odmr_plot_x.size])
 
+
         self.odmr_plot_xy = np.zeros(
             [self.number_of_lines, len(self.get_odmr_channels()), self.odmr_plot_x.size])
 
@@ -250,8 +251,7 @@ class ODMRLogic(GenericLogic):
 
         self.odmr_fit_y = np.zeros(self.odmr_fit_x.size)
 
-
-        self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y, self.odmr_plot_xy)
+        self.sigOdmrPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y)
         current_fit = self.fc.current_fit
         self.sigOdmrFitUpdated.emit(self.odmr_fit_x, self.odmr_fit_y, {}, current_fit)
         return
@@ -270,7 +270,7 @@ class ODMRLogic(GenericLogic):
             self.final_freq_list = np.array(final_freq_list)
 
         self.odmr_plot_x = np.array(self.final_freq_list)
-        self.odmr_plot_y = np.zeros([1, self.odmr_plot_x.size])
+        self.odmr_plot_y = np.zeros([self.odmr_plot_x.size, 2])
         # self.odmr_plot_y = np.zeros([len(self.get_LOCKIN_channels()), self.odmr_plot_x.size]) to be used when there will be more than one channel
 
         """
@@ -1096,7 +1096,7 @@ class ODMRLogic(GenericLogic):
                 average_last_line = np.mean(self.raw_data[self.elapsed_sweeps, :, :self.actual_frequency_index + 1, :], axis=0) #axis = 0 in this case means an average over accumulations
 
                 for i in range(len(average_last_line)):
-                    self.odmr_plot_y[i] = average_last_line[i]
+                    self.odmr_plot_y[i, :] = average_last_line[i, :]
             else:
                 average_full_sweeps = np.mean(self.raw_data[:self.elapsed_sweeps, :, :, :],
                                               axis=(0, 1))
@@ -1105,7 +1105,7 @@ class ODMRLogic(GenericLogic):
 
                 self.odmr_plot_y = average_full_sweeps
                 for i in range(len(average_last_line)):
-                    self[i] = (average_full_sweeps[i] * self.elapsed_sweeps + average_last_line[i]) / (self.elapsed_sweeps + 1)
+                    self.odmr_plot_y[i,:] = (average_full_sweeps[i,: ] * self.elapsed_sweeps + average_last_line[i, :]) / (self.elapsed_sweeps + 1)
 
                 # understand where to put this: at the start or end?
             if self.actual_frequency_index == self.odmr_plot_x.size:
