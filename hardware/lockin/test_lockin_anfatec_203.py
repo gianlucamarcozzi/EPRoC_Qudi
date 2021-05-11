@@ -23,22 +23,25 @@ class LockinAnfatec(Base, LockinInterface):
     _address = ConfigOption('gpib_address', missing='error')
     _delay = 0.1
 
-    tau_values = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001,
-                  0.0005, 0.0002]
+    tau_values = [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100,
+                  200, 500, 1000]
 
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
+        '''
         with open(os.devnull, 'w') as DEVNULL:
             try:
                 subprocess.check_call(['ping', self._address], stdout=DEVNULL, stderr=DEVNULL)
             except:
                 self.log.error('Could not connect to the address >>{}<<.'.format(self._address))
                 raise
+        '''
         return
 
     def on_deactivate(self):
         return
 
+    # probably this is going to the bin
     def get_values(self):
         """
         values of Tau and
@@ -99,7 +102,7 @@ class LockinAnfatec(Base, LockinInterface):
     def set_time_constants(self, tauA=None, tau1=None):
         """
 
-        :param t: tauA 0.1ms is not supported, tau1 {...|-10} -10: same value as tauA
+        :param: tauA 0.1ms is not supported, tau1 {...|-10} -10: same value as tauA
         :return:
         """
         if tauA is not None:
@@ -108,12 +111,19 @@ class LockinAnfatec(Base, LockinInterface):
             r = requests.get(url)
             time.sleep(self._delay)
         if tau1 is not None:
+            if tau1 == 22:
+                tau1 = -10
             query = '8955_' + str(tau1) + '_'
             url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
             r = requests.get(url)
             time.sleep(self._delay)
-        actual_tauA = int(self.get_actual_value('Timeconstant'))
-        actual_tau1 = int(self.get_actual_value('TimeConstLoL'))  # can improve this using classes
+        actual_tauA_index = int(self.get_actual_value('Timeconstant'))
+        actual_tauA = self.tau_values[actual_tauA_index]
+        actual_tau1_index = int(self.get_actual_value('TimeConstLoL')) # can improve this using classes?
+        if actual_tau1_index == -10:
+            actual_tau1 = self.tau_values[actual_tauA_index]
+        else:
+            actual_tau1 = self.tau_values[actual_tau1_index]
         return actual_tauA, actual_tau1
 
     def set_sync_filter_settings(self, val):

@@ -54,6 +54,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
         self._timeout = self._timeout * 1000
+        '''
         # trying to load the visa connection to the module
         self.rm = visa.ResourceManager()
         try:
@@ -67,6 +68,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         self.log.info('MW {} initialised and connected.'.format(self.model))
         self._command_wait('*CLS')
         self._command_wait('*RST')
+        '''
         return
 
     def on_deactivate(self):
@@ -354,7 +356,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         else:
             return TriggerEdge.RISING, timing
 
-    def set_int_trigger(self):
+    def set_internal_trigger(self):
         """
         Set internal trigger to STEP (one trigger equals next frequency) and to stop at the end of the frequency sweep.
         """
@@ -473,18 +475,32 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
 
         # Set the shape of the modulation
         if fm_shape is not None:
+            if fm_shape == 'Sine':
+                fm_shape = 'SINE'
+            elif fm_shape == 'Square':
+                fm_shape = 'SQU'
+            elif fm_shape == 'Pulse':
+                fm_shape = 'PULS'
+            elif fm_shape == 'Triangle':
+                fm_shape = 'TRI'
+            elif fm_shape == 'Trapezoid':
+                fm_shape = 'TRAP'
             self._command_wait(':LFO:SHAP {}'.format(fm_shape))
 
         # Set modulation central frequency
         if fm_freq is not None:
             self._command_wait(':LFO:FREQ {0:f}'.format(fm_freq))
 
-        # Set the value of the deviation from the central frequency
+        # Set the value of the deviation
         if fm_deviation is not None:
             self._command_wait(':FM1 {0:f}'.format(fm_deviation))
 
         # Set fm_mode
         if fm_mode is not None:
+            if fm_mode == 'High Bandwidth':
+                fm_mode = 'HBAN'
+            elif fm_mode == 'Low Noise':
+                fm_mode = 'LNO'
             self._command_wait(':FM:MODE {}'.format(fm_mode))
 
         # Return actually set values (why? how are these used afterwards?)
@@ -492,7 +508,21 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         # Not sure if I should return also mode and is_running
 
         actual_fm_shape = str(self._connection.query(':LFO:SHAP?'))
+        if actual_fm_shape == 'Sine':
+            actual_fm_shape = 'SINE'
+        elif actual_fm_shape == 'Square':
+            actual_fm_shape = 'SQU'
+        elif actual_fm_shape == 'Pulse':
+            actual_fm_shape = 'PULS'
+        elif actual_fm_shape == 'Triangle':
+            actual_fm_shape = 'TRI'
+        elif actual_fm_shape == 'Trapezoid':
+            actual_fm_shape = 'TRAP'
         actual_fm_freq = float(self._connection.query(':LFO:FREQ?'))
         actual_fm_deviation = float(self._connection.query(':FM1?'))
         actual_fm_mode = str(self._connection.query(':FM1:MODE?'))
+        if actual_fm_mode == 'High Bandwidth':
+            actual_fm_mode = 'HBAN'
+        elif actual_fm_mode == 'Low Noise':
+            actual_fm_mode = 'LNO'
         return actual_fm_shape, actual_fm_freq, actual_fm_deviation, actual_fm_mode

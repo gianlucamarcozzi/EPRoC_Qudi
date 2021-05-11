@@ -36,7 +36,7 @@ from core.configoption import ConfigOption
 from core.statusvariable import StatusVar
 
 class EPRoCLogic(GenericLogic):
-    """This is the Logic class for ODMR."""
+    """This is the Logic class for EPRoC."""
 
     # declare connectors
     microwave1 = Connector(interface='MicrowaveInterface')
@@ -53,7 +53,7 @@ class EPRoCLogic(GenericLogic):
 
     # these go here or in on_activate()?
     number_of_sweeps = StatusVar('number_of_sweeps', 1)
-    number_of_accumulations = StatusVar('number_of_accumulations', 1)
+    number_of_accumulations = StatusVar('number_of_accumulations', 10)
 
     cw_mw_frequency = StatusVar('cw_mw_frequency', 287e6)
     cw_mw_power = StatusVar('cw_mw_power', -30)
@@ -61,6 +61,7 @@ class EPRoCLogic(GenericLogic):
     mw_starts = StatusVar('mw_starts', [2800e6])
     mw_stops = StatusVar('mw_stops', [2950e6])
     mw_steps = StatusVar('mw_steps', [2e6])
+    ranges = StatusVar('ranges', 1)
 
     # change these initial values
     lockin_range = StatusVar('lockin_range', 1.)
@@ -111,6 +112,9 @@ class EPRoCLogic(GenericLogic):
         self.elapsed_time = 0.0
         self.elapsed_sweeps = 0
 
+        self.frequency_lists = []
+        self.final_freq_list = []
+
         # Set flag for stopping a measurement
         self.stopRequested = False
 
@@ -120,7 +124,7 @@ class EPRoCLogic(GenericLogic):
         self.eproc_raw_data = np.zeros(
             [self.number_of_sweeps,
              self.number_of_accumulations,
-             self.odmr_plot_x.size,
+             self.eproc_plot_x.size,
              2]     # writing it for 2 channels, but this should become a method get_lockin_channels of some sort
         )
 
@@ -138,7 +142,7 @@ class EPRoCLogic(GenericLogic):
         """
         # Stop measurement if it is still running
         if self.module_state() == 'locked':
-            self.stop_fieldsweep_scan()
+            self.stop_microwavesweep_scan()
         timeout = 30.0
         start_time = time.time()
         while self.module_state() == 'locked':
@@ -169,7 +173,7 @@ class EPRoCLogic(GenericLogic):
         self.eproc_plot_x = np.array(self.final_freq_list)
         self.eproc_plot_y = np.zeros([self.eproc_plot_x.size, 2]) # writing it for 2 channels, but this should become a method get_lockin_channels of some sort
 
-        self.sigEprocPlotsUpdated.emit(self.odmr_plot_x, self.odmr_plot_y)
+        self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
         return
 
     def set_cw_parameters(self, frequency, power):
@@ -282,7 +286,7 @@ class EPRoCLogic(GenericLogic):
 
     def lockin_ext_ref_on(self):
         if self.module_state() == 'locked':
-            self.log.error('Can not change lockin reference. ODMRLogic is already locked.')
+            self.log.error('Can not change lockin reference. EPRoCLogic is already locked.')
         else:
             # setting the values for the reference
             self.fm_shape, \
@@ -298,7 +302,7 @@ class EPRoCLogic(GenericLogic):
 
     def lockin_ext_ref_off(self):
         if self.module_state() == 'locked':
-            self.log.error('Can not change lockin reference. ODMRLogic is already locked.')
+            self.log.error('Can not change lockin reference. EPRoCLogic is already locked.')
         else:
             error_code = self._lockin_device.change_reference('int')
             if error_code == 1:
@@ -326,7 +330,7 @@ class EPRoCLogic(GenericLogic):
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
         if self.module_state() == 'locked':
-            self.log.error('Can not start microwave in CW mode. ODMRLogic is already locked.')
+            self.log.error('Can not start microwave in CW mode. EPRoCLogic is already locked.')
         else:
             self.cw_mw_frequency, \
             self.cw_mw_power, \
@@ -455,7 +459,7 @@ class EPRoCLogic(GenericLogic):
         self.sigOutputStateUpdated.emit(mode, is_running)
         return mode, is_running
 
-    def start_eproc_scan(self):
+    def start_mwsweep_eproc(self):
         with self.threadlock:
             if self.module_state() == 'locked':
                 self.log.error('Can not start EPRoC scan. Logic is already locked.')
@@ -491,7 +495,7 @@ class EPRoCLogic(GenericLogic):
             self.sigNextFreq.emit()
             return 0
 
-    def stop_eproc_scan(self):
+    def stop_mwsweep_eproc(self):
         """ Stop the EPRoC scan.
 
         @return int: error code (0:OK, -1:error)
@@ -503,7 +507,7 @@ class EPRoCLogic(GenericLogic):
 
     def _next_freq(self):
         with self.threadlock:
-            # If the odmr measurement is not running do nothing
+            # If the eproc measurement is not running do nothing
             if self.module_state() != 'locked':
                 return
 
@@ -575,7 +579,7 @@ class EPRoCLogic(GenericLogic):
             else:
                 self.actual_frequency_index += 1
 
-            self.sigOdmrPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
+            self.sigEPRoCPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
             self.sigNextFreq.emit()
             return
 
@@ -585,3 +589,90 @@ class EPRoCLogic(GenericLogic):
         """
         constraints = self._mw_device.get_limits()
         return constraints
+
+    def save_eproc_data(self, tag=None):
+        """ Saves the current EPRoC data to a file."""
+        timestamp = datetime.datetime.now()
+        filepath = self._save_logic.get_path_for_module(module_name='EPRoC')
+
+        if tag is None:
+            tag = ''
+
+        for nch, channel in enumerate(self.get_odmr_channels()):
+            # first save raw data for each channel
+            if len(tag) > 0:
+                filelabel_raw = '{0}_ODMR_data_ch{1}_raw'.format(tag, nch)
+            else:
+                filelabel_raw = 'ODMR_data_ch{0}_raw'.format(nch)
+
+            data_raw = OrderedDict()
+            data_raw['count data (counts/s)'] = self.odmr_raw_data[:self.elapsed_sweeps, nch, :]
+            parameters = OrderedDict()
+            parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
+            parameters['Microwave Sweep Power (dBm)'] = self.sweep_mw_power
+            parameters['Run Time (s)'] = self.run_time
+            parameters['Number of frequency sweeps (#)'] = self.elapsed_sweeps
+            parameters['Start Frequencies (Hz)'] = self.mw_starts
+            parameters['Stop Frequencies (Hz)'] = self.mw_stops
+            parameters['Step sizes (Hz)'] = self.mw_steps
+            parameters['Clock Frequencies (Hz)'] = self.clock_frequency
+            parameters['Channel'] = '{0}: {1}'.format(nch, channel)
+            self._save_logic.save_data(data_raw,
+                                       filepath=filepath,
+                                       parameters=parameters,
+                                       filelabel=filelabel_raw,
+                                       fmt='%.6e',
+                                       delimiter='\t',
+                                       timestamp=timestamp)
+
+            # now create a plot for each scan range
+            data_start_ind = 0
+            for ii, frequency_arr in enumerate(self.frequency_lists):
+                if len(tag) > 0:
+                    filelabel = '{0}_ODMR_data_ch{1}_range{2}'.format(tag, nch, ii)
+                else:
+                    filelabel = 'ODMR_data_ch{0}_range{1}'.format(nch, ii)
+
+                # prepare the data in a dict or in an OrderedDict:
+                data = OrderedDict()
+                data['frequency (Hz)'] = frequency_arr
+
+                num_points = len(frequency_arr)
+                data_end_ind = data_start_ind + num_points
+                data['count data (counts/s)'] = self.odmr_plot_y[nch][data_start_ind:data_end_ind]
+                data_start_ind += num_points
+
+                parameters = OrderedDict()
+                parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
+                parameters['Microwave Sweep Power (dBm)'] = self.sweep_mw_power
+                parameters['Run Time (s)'] = self.run_time
+                parameters['Number of frequency sweeps (#)'] = self.elapsed_sweeps
+                parameters['Start Frequency (Hz)'] = frequency_arr[0]
+                parameters['Stop Frequency (Hz)'] = frequency_arr[-1]
+                parameters['Step size (Hz)'] = frequency_arr[1] - frequency_arr[0]
+                parameters['Clock Frequencies (Hz)'] = self.clock_frequency
+                parameters['Channel'] = '{0}: {1}'.format(nch, channel)
+                parameters['frequency range'] = str(ii)
+
+                key = 'channel: {0}, range: {1}'.format(nch, ii)
+                if key in self.fits_performed.keys():
+                    parameters['Fit function'] = self.fits_performed[key][3]
+                    for name, param in self.fits_performed[key][2].params.items():
+                        parameters[name] = str(param)
+                # add all fit parameter to the saved data:
+
+                fig = self.draw_figure(nch, ii,
+                                       cbar_range=colorscale_range,
+                                       percentile_range=percentile_range)
+
+                self._save_logic.save_data(data,
+                                           filepath=filepath,
+                                           parameters=parameters,
+                                           filelabel=filelabel,
+                                           fmt='%.6e',
+                                           delimiter='\t',
+                                           timestamp=timestamp,
+                                           plotfig=fig)
+
+        self.log.info('ODMR data saved to:\n{0}'.format(filepath))
+        return

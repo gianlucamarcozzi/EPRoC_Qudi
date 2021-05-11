@@ -44,7 +44,7 @@ class ODMRMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'test_ui_2_newnew.ui')
+        ui_file = os.path.join(this_dir, 'test_ui_2_final.ui')
 
         # Load it
         super(ODMRMainWindow, self).__init__()
@@ -1412,21 +1412,6 @@ class ODMRGui(GUIBase):
         freq = self._mw.source_frequency_DoubleSpinBox.value()
         dev = self._mw.mod_dev_frequency_DoubleSpinBox.value()
         mode = self._mw.mod_mode_comboBox.currentText()
-        # conversion, maybe can be eliminated in an intelligent way
-        if shape == 'Sine':
-            shape = 'SINE'
-        elif shape == 'Square':
-            shape = 'SQU'
-        elif shape == 'Pulse':
-            shape = 'PULS'
-        elif shape == 'Triangle':
-            shape = 'TRI'
-        elif shape == 'Trapezoid':
-            shape = 'TRAP'
-        if mode == 'High Bandwidth':
-            mode = 'HBAN'
-        elif mode == 'Low Noise':
-            mode = 'LNO'
         self.sigFmParamsChanged.emit(shape, freq, dev, mode)
         return
 
