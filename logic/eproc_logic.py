@@ -77,6 +77,11 @@ class EPRoCLogic(GenericLogic):
     harmonic = StatusVar('harmonic', 1)
     waiting_time_factor = StatusVar('waiting_time_factor', 1)
 
+    fm_shape = StatusVar('fm_shape', 'SIN')
+    fm_freq = StatusVar('fm_ext_freq', 1000000)
+    fm_dev = StatusVar('fm_dev', 1000)
+    fm_mode = StatusVar('fm_mode', 'HBAN')
+
     # Internal signals
     sigNextFreq = QtCore.Signal()
 
@@ -131,6 +136,7 @@ class EPRoCLogic(GenericLogic):
         # Switch off microwave and set CW frequency and power
         self.mw_off()
         self.set_cw_parameters(self.cw_mw_frequency, self.cw_mw_power)
+        self.fm_shape = self.fm_shape
 
         # Connect signals
         self.sigNextFreq.connect(self._next_freq, QtCore.Qt.QueuedConnection)
@@ -290,9 +296,9 @@ class EPRoCLogic(GenericLogic):
         else:
             # setting the values for the reference
             self.fm_shape, \
-            self.fm_ext_freq, \
+            self.fm_freq, \
             self.fm_dev, \
-            self.fm_mode = self._mw_device.set_fm(self.fm_shape, self.fm_ext_freq, self.fm_dev, self.fm_mode)
+            self.fm_mode = self._mw_device.set_fm(self.fm_shape, self.fm_freq, self.fm_dev, self.fm_mode)
             error_code = self._lockin_device.change_reference('ext')
             # error_code = {0|1} where 0 means internal reference and 1 external reference
             # is this hardware dependent?
@@ -538,7 +544,7 @@ class EPRoCLogic(GenericLogic):
             # average over accumulations for the current frequency and the current sweep
             new_value = np.mean(self.eproc_raw_data[self.elapsed_sweeps, :, self.actual_frequency_index, :],
                                 axis=0,     #axis = 0 in this case means an average over accumulations
-                                dtype = np.float64)
+                                dtype=np.float64)
 
             self.eproc_plot_y[self.actual_frequency_index, :] = (self.eproc_plot_y[self.actual_frequency_index, :] * self.elapsed_sweeps + new_value) / (self.elapsed_sweeps + 1)
 
@@ -569,7 +575,7 @@ class EPRoCLogic(GenericLogic):
             '''
 
             # understand where to put this: at the start or end?
-            if self.actual_frequency_index == self.eproc_plot_x.size:
+            if self.actual_frequency_index == self.eproc_plot_x.size - 1:
                 self.reset_sweep()
                 self.elapsed_sweeps += 1
                 self.actual_frequency_index = 0
@@ -579,7 +585,7 @@ class EPRoCLogic(GenericLogic):
             else:
                 self.actual_frequency_index += 1
 
-            self.sigEPRoCPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
+            self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
             self.sigNextFreq.emit()
             return
 

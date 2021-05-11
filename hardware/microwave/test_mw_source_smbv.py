@@ -54,7 +54,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
         self._timeout = self._timeout * 1000
-        '''
+
         # trying to load the visa connection to the module
         self.rm = visa.ResourceManager()
         try:
@@ -68,7 +68,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         self.log.info('MW {} initialised and connected.'.format(self.model))
         self._command_wait('*CLS')
         self._command_wait('*RST')
-        '''
+
         return
 
     def on_deactivate(self):

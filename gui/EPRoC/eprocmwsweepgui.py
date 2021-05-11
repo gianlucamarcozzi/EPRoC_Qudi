@@ -695,18 +695,15 @@ class EPRoCGui(GUIBase):
         @param bool is_running: is the microwave output active?
         """
         # Block signals from firing
-        #        self._mw.action_run_stop.blockSignals(True)
-        #        self._mw.action_resume_odmr.blockSignals(True)
+        self._mw.action_run_stop.blockSignals(True)
         self._mw.action_toggle_cw.blockSignals(True)
 
         # Update measurement status (activate/deactivate widgets/actions)
         if is_running:
-            #            self._mw.action_resume_odmr.setEnabled(False)
             self._mw.cw_power_DoubleSpinBox.setEnabled(False)
             self._mw.cw_frequency_DoubleSpinBox.setEnabled(False)
             if mw_mode != 'cw':
-                #                self._mw.clear_odmr_PushButton.setEnabled(True)
-                #                self._mw.action_run_stop.setEnabled(True)
+                self._mw.action_run_stop.setEnabled(True)
                 self._mw.action_toggle_cw.setEnabled(True)
                 dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
                 for identifier_name in dspinbox_dict:
@@ -715,38 +712,25 @@ class EPRoCGui(GUIBase):
                 self._mw.mwsweep_eproc_control_DockWidget.add_range_button.setEnabled(False)
                 self._mw.mwsweep_eproc_control_DockWidget.remove_range_button.setEnabled(False)
                 self._mw.sweep_power_DoubleSpinBox.setEnabled(False)
-            #                self._mw.runtime_DoubleSpinBox.setEnabled(False)
-            #                self._sd.clock_frequency_DoubleSpinBox.setEnabled(False)
-            #                self._sd.oversampling_SpinBox.setEnabled(False)
-            #                self._sd.lock_in_CheckBox.setEnabled(False)
-            #                self._mw.action_run_stop.setChecked(True)
-            #                self._mw.action_resume_odmr.setChecked(True)
-            # self._mw.action_toggle_cw.setChecked(False)
+                self._mw.action_run_stop.setChecked(True)
+                self._mw.action_toggle_cw.setChecked(False)
             else:
-                #                self._mw.clear_odmr_PushButton.setEnabled(False)
-                #                self._mw.action_run_stop.setEnabled(False)
+                self._mw.action_run_stop.setEnabled(False)
                 self._mw.action_toggle_cw.setEnabled(True)
                 dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
                 for identifier_name in dspinbox_dict:
                     dspinbox_type_list = dspinbox_dict[identifier_name]
                     [dspinbox_type.setEnabled(True) for dspinbox_type in dspinbox_type_list]
-        #                self._mw.mwsweep_eproc_control_DockWidget.add_range_button.setEnabled(True)
-        #                self._mw.mwsweep_eproc_control_DockWidget.remove_range_button.setEnabled(True)
-        #                self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
-        #                self._mw.runtime_DoubleSpinBox.setEnabled(True)
-        #                self._sd.clock_frequency_DoubleSpinBox.setEnabled(True)
-        #                self._sd.oversampling_SpinBox.setEnabled(True)
-        #                self._sd.lock_in_CheckBox.setEnabled(True)
-        #                self._mw.action_run_stop.setChecked(False)
-        #                self._mw.action_resume_odmr.setChecked(False)
-        #                self._mw.action_toggle_cw.setChecked(True)
+                self._mw.mwsweep_eproc_control_DockWidget.add_range_button.setEnabled(True)
+                self._mw.mwsweep_eproc_control_DockWidget.remove_range_button.setEnabled(True)
+                self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
+                self._mw.action_run_stop.setChecked(False)
+                self._mw.action_toggle_cw.setChecked(True)
         else:
-            #            self._mw.action_resume_odmr.setEnabled(True)
             self._mw.cw_power_DoubleSpinBox.setEnabled(True)
             self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
             self._mw.cw_frequency_DoubleSpinBox.setEnabled(True)
-            #            self._mw.clear_odmr_PushButton.setEnabled(False)
-            #            self._mw.action_run_stop.setEnabled(True)
+            self._mw.action_run_stop.setEnabled(True)
             self._mw.action_toggle_cw.setEnabled(True)
             dspinbox_dict = self.get_all_dspinboxes_from_groupbox()
             for identifier_name in dspinbox_dict:
@@ -754,7 +738,7 @@ class EPRoCGui(GUIBase):
                 [dspinbox_type.setEnabled(True) for dspinbox_type in dspinbox_type_list]
             if self._eproc_logic.mw_scanmode.name == 'SWEEP':
                 self._mw.mwsweep_eproc_control_DockWidget.add_range_button.setDisabled(True)
-            #            elif self._eproc_logic.mw_scanmode.name == 'LIST':
+            elif self._eproc_logic.mw_scanmode.name == 'LIST':
             #                self._mw.mwsweep_eproc_control_DockWidget.add_range_button.setEnabled(True)
             #            self._mw.mwsweep_eproc_control_DockWidget.remove_range_button.setEnabled(True)
             #            self._mw.runtime_DoubleSpinBox.setEnabled(True)
@@ -763,11 +747,10 @@ class EPRoCGui(GUIBase):
             #            self._sd.lock_in_CheckBox.setEnabled(True)
             #            self._mw.action_run_stop.setChecked(False)
             #            self._mw.action_resume_odmr.setChecked(False)
-            self._mw.action_toggle_cw.setChecked(False)
+                self._mw.action_toggle_cw.setChecked(False)
 
         # Unblock signal firing
-        #        self._mw.action_run_stop.blockSignals(False)
-        #        self._mw.action_resume_odmr.blockSignals(False)
+        self._mw.action_run_stop.blockSignals(False)
         self._mw.action_toggle_cw.blockSignals(False)
         return
 
@@ -1015,7 +998,6 @@ class EPRoCGui(GUIBase):
         config = self._mw.lockin_config_comboBox.currentIndex()
         amplitude = self._mw.lockin_amplitude_DoubleSpinBox.value()
         int_freq = self._mw.int_ref_frequency_DoubleSpinBox.value()
-        print(int_freq)
         phase = self._mw.lockin_phase_DoubleSpinBox.value()
         phase1 = self._mw.lockin_phase1_DoubleSpinBox.value()
         harmonic = self._mw.harmonic_spinBox.value()

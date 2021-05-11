@@ -182,9 +182,7 @@ class LockinAnfatec(Base, LockinInterface):
         """
         query = '8DD_' + str(f) + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
-        print(url)
         r = requests.get(url)
-        print(r)
         time.sleep(self._delay)
         actual_freq = float(self.get_actual_value('Frequency'))
         return actual_freq
@@ -223,11 +221,9 @@ class LockinAnfatec(Base, LockinInterface):
                          1: external
         """
         if ref == 'int':
-            ref = '-'
-            print('a')
+            ref = '0'
         else:
-            ref = '+'
-            print('b')
+            ref = '1'
         query = '8DA_' + ref + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
