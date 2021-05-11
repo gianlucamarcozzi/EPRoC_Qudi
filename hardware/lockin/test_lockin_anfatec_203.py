@@ -93,7 +93,7 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_coupl = int(self.get_value('InputCoupl'))
+        actual_coupl = int(self.get_actual_value('InputCoupl'))
         return actual_coupl
 
     def set_time_constants(self, tauA=None, tau1=None):
@@ -149,7 +149,7 @@ class LockinAnfatec(Base, LockinInterface):
         :param i: 0: A, 1: A-B, 2: A&B
         :return:
         """
-        query = '89A_' + str(i) + '_'
+        query = '89A_' + '2' + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
@@ -172,7 +172,9 @@ class LockinAnfatec(Base, LockinInterface):
         """
         query = '8DD_' + str(f) + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
+        print(url)
         r = requests.get(url)
+        print(r)
         time.sleep(self._delay)
         actual_freq = float(self.get_actual_value('Frequency'))
         return actual_freq
@@ -203,18 +205,20 @@ class LockinAnfatec(Base, LockinInterface):
     def change_reference(self, ref):
         """
         change reference signal
-        :param ref: str {-|+}:
-                         '-': internal reference
-                         '+': external refernce
+        :param ref: str {0|1}:
+                         '0': internal reference
+                         '1': external reference
         :return actual_ref: int {0|1}:
                          0: internal
                          1: external
         """
         if ref == 'int':
             ref = '-'
+            print('a')
         else:
             ref = '+'
-        query = '8DA' + ref + '_'
+            print('b')
+        query = '8DA_' + ref + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
