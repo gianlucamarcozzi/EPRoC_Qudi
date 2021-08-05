@@ -45,11 +45,12 @@ class ODMRLogic(GenericLogic):
     microwave1 = Connector(interface='MicrowaveInterface')
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
+    magnet1 = Connector(interface='EprocMagnetInterface')
 
     # config option
     mw_scanmode = ConfigOption(
         'scanmode',
-        'SWEEP',
+        'LIST',
         missing='warn',
         converter=lambda x: MicrowaveMode[x.upper()])
 
@@ -93,6 +94,7 @@ class ODMRLogic(GenericLogic):
         self._odmr_counter = self.odmrcounter()
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
+        self._mag_device = self.magnet1()
 
         # Get hardware constraints
         limits = self.get_hw_constraints()

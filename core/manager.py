@@ -595,7 +595,31 @@ class Manager(QtCore.QObject):
 
         self.sigModulesChanged.emit()
         return instance
+    def set_time_constants(self, tauA=None, tau1=None):
+        """
 
+        :param: tauA 0.1ms is not supported, tau1 {...|-10} -10: same value as tauA
+        :return:
+        """
+        if tauA is not None:
+            tauA = self.tau_value_to_index(tauA)
+            if tauA > -11:
+                query = '8959_' + str(tauA) + '_'
+                url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
+                r = requests.get(url)
+                time.sleep(self._delay)
+        if tau1 is not None:
+            tau1 = self.tau_value_to_index(tau1)
+            if tau1 > -11:
+                query = '8959_' + str(tau1) + '_'
+                url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
+                r = requests.get(url)
+                time.sleep(self._delay)
+        actual_tauA = self.tau_index_to_value(int(self.get_actual_value('Timeconstant')))
+        print(actual_tauA)
+        actual_tau1 = self.tau_index_to_value(int(self.get_actual_value('TimeConstLoL')))
+        print(actual_tau1)
+        return actual_tauA, actual_tau1
     def connectModule(self, base, mkey):
         """ Connects the given module in mkey to main object with the help
             of base.
