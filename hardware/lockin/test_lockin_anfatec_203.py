@@ -23,33 +23,22 @@ class LockinAnfatec(Base, LockinInterface):
     _address = ConfigOption('gpib_address', missing='error')
     _delay = 0.1
 
-    tau_values = [0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100,
-                  200, 500, 1000]
+    _username = 'long'
+    _password = 'nga'
+
+    tau_values = [0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50,
+                  100, 200, 500, 1000]
 
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
-        '''
-        with open(os.devnull, 'w') as DEVNULL:
-            try:
-                subprocess.check_call(['ping', self._address], stdout=DEVNULL, stderr=DEVNULL)
-            except:
-                self.log.error('Could not connect to the address >>{}<<.'.format(self._address))
-                raise
-        '''
+        r = requests.get('http://' + self._address + '/cgi-bin/login.cgi?username=' + self._username + '&password=' + self._password)
+        if 'no_authentication' in r.text:
+            self.log.error('Could not connect to the address >>{}<<.'.format(self._address))
+            raise Exception('Could not connect to the address >>{}<<.'.format(self._address))
         return
 
     def on_deactivate(self):
         return
-
-    # probably this is going to the bin
-    def get_values(self):
-        """
-        values of Tau and
-        :return:
-        """
-        tau_values = [1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001,
-                      0.0005, 0.0002]
-        return tau_values
 
     def get_actual_value(self, param):
         """
@@ -72,17 +61,24 @@ class LockinAnfatec(Base, LockinInterface):
 
     def set_input_range(self, r):
         """
-        :param r: int {1|10|100}
-                        1: low noise
-                        10: normal
-                        100: high dyn. reserve
-        :return act_range: same as range
+        :param r: str {'0.1'|'1'|'10'}
+                        '0.1': low noise
+                        '1': normal
+                        '10': high dyn. reserve
         """
-        query = '899_' + str(r) + '_'
+        if r == '0.1':
+            r = '1'
+        else:
+            r = str(10 * int(r))
+        query = '899_' + r + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_range = int(self.get_actual_value('InputRange'))
+        actual_range = self.get_actual_value('InputRange')
+        if actual_range == '1':
+            actual_range = '0.1'
+        else:
+            actual_range = str(int(actual_range) / 10)
         return actual_range
 
     def set_coupling_type(self, coupl):
@@ -92,11 +88,19 @@ class LockinAnfatec(Base, LockinInterface):
                         1: ac coupled
         :return actual_coupl:
         """
+        if coupl == 'dc':
+            coupl = 0
+        else:
+            coupl = 1
         query = '89D_' + str(coupl) + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
         actual_coupl = int(self.get_actual_value('InputCoupl'))
+        if actual_coupl == 0:
+            actual_coupl = 'dc'
+        else:
+            actual_coupl = 'ac'
         return actual_coupl
 
     def set_time_constants(self, tauA=None, tau1=None):
@@ -106,24 +110,17 @@ class LockinAnfatec(Base, LockinInterface):
         :return:
         """
         if tauA is not None:
-            query = '8959_' + str(tauA) + '_'
+            query = '8959_' + str(self.tau_values.index(tauA) + 1) + '_'
             url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
             r = requests.get(url)
             time.sleep(self._delay)
         if tau1 is not None:
-            if tau1 == 22:
-                tau1 = -10
-            query = '8955_' + str(tau1) + '_'
+            query = '8955_' + str(self.tau_values.index(tau1) + 1) + '_'
             url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
             r = requests.get(url)
             time.sleep(self._delay)
-        actual_tauA_index = int(self.get_actual_value('Timeconstant'))
-        actual_tauA = self.tau_values[actual_tauA_index]
-        actual_tau1_index = int(self.get_actual_value('TimeConstLoL')) # can improve this using classes?
-        if actual_tau1_index == -10:
-            actual_tau1 = self.tau_values[actual_tauA_index]
-        else:
-            actual_tau1 = self.tau_values[actual_tau1_index]
+        actual_tauA = self.tau_values[int(self.get_actual_value('Timeconstant')) - 1]
+        actual_tau1 = self.tau_values[int(self.get_actual_value('TimeConstLoL')) - 1]
         return actual_tauA, actual_tau1
 
     def set_sync_filter_settings(self, val):
@@ -150,9 +147,8 @@ class LockinAnfatec(Base, LockinInterface):
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
-        actual_slope = int(self.get_actual_value('Rolloff'))
-        actual_slope2 = int(self.get_actual_value('RollOffLoL'))
-        return actual_slope, actual_slope2
+        actual_slope = self.get_actual_value('Rolloff')
+        return actual_slope
 
     def set_input_config(self, i):
         """
@@ -164,6 +160,12 @@ class LockinAnfatec(Base, LockinInterface):
         r = requests.get(url)
         time.sleep(self._delay)
         actual_config = int(self.get_actual_value('InputMode'))
+        if actual_config == 0:
+            actual_config = 'A'
+        elif actual_config == 1:
+            actual_config = 'A-B'
+        else:
+            actual_config = 'A&B'
         return actual_config
 
     def set_amplitude(self, uac):
@@ -204,7 +206,7 @@ class LockinAnfatec(Base, LockinInterface):
 
     def set_harmonic(self, i):
         query = '8D1_' + str(i) + '_'
-        url = ('http://'+ self._address +'/cgi-bin/remote.cgi?' + query)
+        url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
         actual_harmonic = int(self.get_actual_value('Harmonic'))

@@ -43,6 +43,7 @@ class EPRoCLogic(GenericLogic):
     lockin = Connector(interface='LockinInterface')
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
+    magnet = Connector(interface='EprocMagnetInterface')
 
     # config option
     mw_scanmode = ConfigOption(
@@ -55,41 +56,52 @@ class EPRoCLogic(GenericLogic):
     number_of_sweeps = StatusVar('number_of_sweeps', 1)
     number_of_accumulations = StatusVar('number_of_accumulations', 10)
 
-    cw_mw_frequency = StatusVar('cw_mw_frequency', 287e6)
-    cw_mw_power = StatusVar('cw_mw_power', -30)
-    sweep_mw_power = StatusVar('sweep_mw_power', -30)
-    mw_starts = StatusVar('mw_starts', [2800e6])
-    mw_stops = StatusVar('mw_stops', [2950e6])
-    mw_steps = StatusVar('mw_steps', [2e6])
-    ranges = StatusVar('ranges', 1)
+    # Parameters for microwave sweep
+    ms_field = StatusVar('ms_field', 3480.)
+    ms_mw_power = StatusVar('ms_mw_power', -30)
+    ms_start = StatusVar('ms_start', 2800e6)
+    ms_stop = StatusVar('ms_stop', 2950e6)
+    ms_step = StatusVar('ms_step', 2e6)
 
-    # change these initial values
-    lockin_range = StatusVar('lockin_range', 1.)
-    coupl = StatusVar('coupl', 'ac')
-    tauA = StatusVar('tauA', 1)
-    tauB = StatusVar('tauB', 1)
-    slope = StatusVar('slope', 6)
-    config = StatusVar('config', 'A&B')
-    amplitude = StatusVar('amplitude', 0)
-    fm_int_freq = StatusVar('fm_int_freq', 0)
-    phase = StatusVar('phase', 0)
-    phase1 = StatusVar('phase1', 0)
-    harmonic = StatusVar('harmonic', 1)
-    waiting_time_factor = StatusVar('waiting_time_factor', 1)
+    # Parameters for field sweep
+    fs_mw_frequency = StatusVar('fs_mw_frequency', 2870e6)
+    fs_mw_power = StatusVar('fs_mw_power', -30)
+    fs_start = StatusVar('fs_start', 3400.)
+    fs_stop = StatusVar('fs_stop', 3500.)
+    fs_step = StatusVar('fs_step', 1.)
 
-    fm_shape = StatusVar('fm_shape', 'SIN')
-    fm_freq = StatusVar('fm_ext_freq', 1000000)
-    fm_dev = StatusVar('fm_dev', 1000)
-    fm_mode = StatusVar('fm_mode', 'HBAN')
+    # Change these initial values
+    lia_range = StatusVar('lia_range', '0.1')
+    lia_uac = StatusVar('lia_uac', 0)
+    lia_coupling = StatusVar('lia_coupling', 'ac')
+    lia_int_ref_freq = StatusVar('lia_int_ref_freq', 0)
+    lia_tauA = StatusVar('lia_tauA', '1 ms')
+    lia_phaseA = StatusVar('lia_phaseA', 0)
+    lia_tauB = StatusVar('lia_tauB', '2 ms')
+    lia_phaseB = StatusVar('lia_phaseB', 0)
+    lia_waiting_time_factor = StatusVar('lia_waiting_time_factor', 1)
+    lia_harmonic = StatusVar('lia_harmonic', '1')
+    lia_slope = StatusVar('lia_slope', '6')
+    lia_configuration = StatusVar('lia_configuration', 'A&B')
+
+    # Parameters for reference signal
+    ref_shape = StatusVar('ref_shape', 'SIN')
+    ref_freq = StatusVar('ref_freq', 1000000)
+    ref_mode = StatusVar('ref_mode', 'HBAN')
+    ref_deviation = StatusVar('ref_deviation', 1000)
+
+    is_microwave_sweep = StatusVar('is_microwave_sweep', True)
+    is_external_reference = StatusVar('is_external_reference', True)
 
     # Internal signals
-    sigNextFreq = QtCore.Signal()
+    sigNextMeasure = QtCore.Signal()
 
     # Update signals, e.g. for GUI module
     sigParameterUpdated = QtCore.Signal(dict)
-    sigOutputStateUpdated = QtCore.Signal(str, bool)
+    sigOutputStateUpdated = QtCore.Signal(bool)
     sigEprocPlotsUpdated = QtCore.Signal(np.ndarray, np.ndarray)
-    sigEprocElapsedTimeUpdated = QtCore.Signal(float, int)
+    sigSetLabelEprocPlots = QtCore.Signal(bool)
+    sigEprocRemainingTimeUpdated = QtCore.Signal(float, int)
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -104,21 +116,20 @@ class EPRoCLogic(GenericLogic):
         self._lockin_device = self.lockin()
         self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
+        self._magnet = self.magnet()
 
         # Get hardware constraints
         limits = self.get_hw_constraints()
 
         # Set/recall microwave source parameters
-        self.cw_mw_frequency = limits.frequency_in_range(self.cw_mw_frequency)
-        self.cw_mw_power = limits.power_in_range(self.cw_mw_power)
-        self.sweep_mw_power = limits.power_in_range(self.sweep_mw_power)
+        self.fs_mw_frequency = limits.frequency_in_range(self.fs_mw_frequency)
+        self.fs_mw_power = limits.power_in_range(self.fs_mw_power)
+        self.ms_mw_power = limits.power_in_range(self.ms_mw_power)
 
         # Elapsed measurement time and number of sweeps
         self.elapsed_time = 0.0
         self.elapsed_sweeps = 0
-
-        self.frequency_lists = []
-        self.final_freq_list = []
+        self.elapsed_accumulations = 0
 
         # Set flag for stopping a measurement
         self.stopRequested = False
@@ -130,16 +141,24 @@ class EPRoCLogic(GenericLogic):
             [self.number_of_sweeps,
              self.number_of_accumulations,
              self.eproc_plot_x.size,
-             2]     # writing it for 2 channels, but this should become a method get_lockin_channels of some sort
+             4]     # writing it for 2 channels, but this should become a method get_lockin_channels of some sort
         )
 
         # Switch off microwave and set CW frequency and power
         self.mw_off()
-        self.set_cw_parameters(self.cw_mw_frequency, self.cw_mw_power)
-        self.fm_shape = self.fm_shape
 
+        # Set only the continuous values
+        self.set_ms_parameters(self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power)
+        self.set_fs_parameters(self.fs_start, self.fs_step, self.fs_stop, self.fs_mw_frequency, self.fs_mw_power)
+
+        self.set_lia_parameters(self.lia_range, self.lia_uac, self.lia_coupling, self.lia_int_ref_freq, self.lia_tauA,
+                                self.lia_phaseA, self.lia_tauB, self.lia_phaseB, self.lia_waiting_time_factor,
+                                self.lia_harmonic, self.lia_slope, self.lia_configuration)
+
+        self.set_ref_parameters(self.ref_shape, self.ref_freq, self.ref_mode, self.ref_deviation)
+        self.set_eproc_scan_parameters(self.number_of_sweeps, self.number_of_accumulations)
         # Connect signals
-        self.sigNextFreq.connect(self._next_freq, QtCore.Qt.QueuedConnection)
+        self.sigNextMeasure.connect(self._next_measure, QtCore.Qt.QueuedConnection)
         return
 
     def on_deactivate(self):
@@ -161,51 +180,23 @@ class EPRoCLogic(GenericLogic):
         # Switch off microwave source for sure (also if CW mode is active or module is still locked)
         self._mw_device.off()
         # Disconnect signals
-        self.sigNextFreq.disconnect()
+        self.sigNextMeasure.disconnect()
 
     def _initialize_eproc_plots(self):
         """ Initializing the EPRoC plots. """
-
-        final_freq_list = []
-        self.frequency_lists = []
-        for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
-            freqs = np.arange(mw_start, mw_stop + mw_step, mw_step)
-            final_freq_list.extend(freqs)
-            self.frequency_lists.append(freqs)
-
-        if type(self.final_freq_list) == list:
-            self.final_freq_list = np.array(final_freq_list)
-
-        self.eproc_plot_x = np.array(self.final_freq_list)
-        self.eproc_plot_y = np.zeros([self.eproc_plot_x.size, 2]) # writing it for 2 channels, but this should become a method get_lockin_channels of some sort
+        if self.is_microwave_sweep:
+            self.eproc_plot_x = np.array(np.arange(self.ms_start, self.ms_stop + self.ms_step, self.ms_step))
+        else:
+            self.eproc_plot_x = np.array(np.arange(self.fs_start, self.fs_stop + self.fs_step, self.fs_step))
+        self.eproc_plot_y = np.zeros([self.eproc_plot_x.size, 4]) # writing it for 4 channels, but this should become a method get_lockin_channels of some sort
 
         self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
+        self.sigSetLabelEprocPlots.emit(self.is_microwave_sweep)
         return
 
-    def set_cw_parameters(self, frequency, power):
-        """ Set the desired new cw mode parameters.
-
-        @param float frequency: frequency to set in Hz
-        @param float power: power to set in dBm
-
-        @return (float, float): actually set frequency in Hz, actually set power in dBm
-        """
-        if self.module_state() != 'locked' and isinstance(frequency, (int, float)) and isinstance(power, (int, float)):
-            constraints = self.get_hw_constraints()
-            frequency_to_set = constraints.frequency_in_range(frequency)
-            power_to_set = constraints.power_in_range(power)
-            self.cw_mw_frequency, self.cw_mw_power, dummy = self._mw_device.set_cw(frequency_to_set,
-                                                                                   power_to_set)
-        else:
-            self.log.warning('set_cw_frequency failed. Logic is either locked or input value is '
-                             'no integer or float.')
-
-        param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
-        self.sigParameterUpdated.emit(param_dict)
-        return self.cw_mw_frequency, self.cw_mw_power
-
-    def set_sweep_parameters(self, starts, stops, steps, power):
-        """ Set the desired frequency parameters for list and sweep mode
+    def set_ms_parameters(self, start, step, stop, field, power):
+        """ Set the desired parameters for a microwave sweep. This means that start, step and stop refer to the
+        microwave.
 
         @param list starts: list of start frequencies to set in Hz
         @param list stops: list of stop frequencies to set in Hz
@@ -216,89 +207,103 @@ class EPRoCLogic(GenericLogic):
                                             current freq_step, current power
         """
         limits = self.get_hw_constraints()
-        # as everytime all the elements are read when editing of a box is finished
-        # also need to reset the lists in this case
-        self.mw_starts = []
-        self.mw_steps = []
-        self.mw_stops = []
 
         if self.module_state() != 'locked':
-            for start, step, stop in zip(starts, steps, stops):
-                if isinstance(start, (int, float)):
-                    self.mw_starts.append(limits.frequency_in_range(start))
-                if isinstance(stop, (int, float)) and isinstance(step, (int, float)):
-                    if stop <= start:
-                        stop = start + step
-                    self.mw_stops.append(limits.frequency_in_range(stop))
-                    if self.mw_scanmode == MicrowaveMode.LIST:
-                        self.mw_steps.append(limits.list_step_in_range(step))
-                    elif self.mw_scanmode == MicrowaveMode.SWEEP:
-                        if self.ranges == 1:
-                            self.mw_steps.append(limits.sweep_step_in_range(step))
-                        else:
-                            self.log.error("Sweep mode will only work with one frequency range.")
-
-            if isinstance(power, (int, float)):
-                self.sweep_mw_power = limits.power_in_range(power)
+            if isinstance(start, (int, float)) and isinstance(power, (int, float)):
+                start = limits.frequency_in_range(start)
+                power = limits.power_in_range(power)
+                self.ms_start, self.ms_mw_power, dummy = self._mw_device.set_cw(start, power)
+            if isinstance(stop, (int, float)) and isinstance(step, (int, float)):
+                self.ms_step = limits.sweep_step_in_range(step)
+                if stop <= start:
+                    stop = start + step
+                self.ms_stop = limits.frequency_in_range(stop)
+            if isinstance(field, (int, float)):
+                # This should be changed when the methods to check field limits is implemented
+                self.ms_field = self._magnet.set_central_field(field)
         else:
-            self.log.warning('set_sweep_parameters failed. Logic is locked.')
+            self.log.warning('set_ms_parameters failed. Logic is locked.')
 
-        param_dict = {'mw_starts': self.mw_starts, 'mw_stops': self.mw_stops, 'mw_steps': self.mw_steps,
-                      'sweep_mw_power': self.sweep_mw_power}
+        param_dict = {'ms_start': self.ms_start, 'ms_stop': self.ms_stop, 'ms_step': self.ms_step,
+                      'ms_mw_power': self.ms_mw_power, 'ms_field': self.ms_field}
         self.sigParameterUpdated.emit(param_dict)
-        return self.mw_starts, self.mw_stops, self.mw_steps, self.sweep_mw_power
+        return self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power
 
-    def set_fm_parameters(self, shape, freq, dev, mode):
+    def set_fs_parameters(self, start, step, stop, frequency, power):
+        # To fix: use limits, like in set_ms_mw_frequency
         if self.module_state() != 'locked':
-            if isinstance(freq, (int, float)) and isinstance(dev, (int, float)):
-                self.fm_shape, self.fm_ext_freq, self.fm_dev, self.fm_mode = self._mw_device.set_fm(shape, freq, dev, mode)
+            limits = self.get_hw_constraints()
 
-        param_dict = {'fm_shape': self.fm_shape, 'fm_freq': self.fm_freq, 'fm_dev': self.fm_dev,
-                      'fm_mode': self.fm_mode}
+            if isinstance(start, (int, float)):
+                self.fs_start = self._magnet.set_central_field(start)
+            if isinstance(stop, (int, float)) and isinstance(step, (int, float)):
+                if stop <= start:
+                    stop = start + step
+                self.fs_stop = stop
+                self.fs_step = step
+            if isinstance(frequency, (int, float)) and isinstance(power, (int, float)):
+                frequency = limits.frequency_in_range(frequency)
+                power = limits.power_in_range(power)
+                self.fs_mw_frequency, self.fs_mw_power, dummy = self._mw_device.set_cw(frequency, power)
+        else:
+            self.log.warning('set_fs_field_parameters failed. Logic is locked.')
+
+        param_dict = {'fs_start': self.fs_start, 'fs_stop': self.fs_stop, 'fs_step': self.fs_step,
+                      'fs_mw_frequency': self.fs_mw_frequency, 'fs_mw_power': self.fs_mw_power}
         self.sigParameterUpdated.emit(param_dict)
-        return self.fm_shape, self.fm_freq, self.fm_dev, self.fm_mode
+        return self.fs_start, self.fs_step, self.fs_stop, self.fs_mw_frequency, self.fs_mw_power
 
-    def set_lockin_parameters(self, lockin_range, coupl, tauA, tauB, slope, config, amplitude, fm_int_freq,
-                              phase, phase1, harmonic, waiting_time_factor):
+    def check_ranges(self):
+        # sigParameterUpdated.emit() is not present because this module is only called in start_eproc() and it is
+        # placed before another method that calls sigParameterUpdated.emit()
+        num_step = int(np.rint((self.ms_stop - self.ms_start) / self.ms_step))
+        self.ms_stop = self.ms_start + num_step * self.ms_step
+        num_step = int(np.rint((self.fs_stop - self.fs_start) / self.fs_step))
+        self.fs_stop = self.fs_start + num_step * self.fs_step
+        return
+
+    def set_lia_parameters(self, input_range, uac, coupling, int_ref_freq, tauA, phaseA, tauB, phaseB, waiting_time_factor,
+                           harmonic, slope, configuration):
         if self.module_state() != 'locked':
-            if isinstance(lockin_range, (int, float)) and isinstance(amplitude, (int, float)) and \
-                    isinstance(fm_int_freq, (int, float)) and isinstance(phase, (int, float)) and \
-                    isinstance(phase1, (int, float)) and isinstance(harmonic, (int, float)):
-                self.lockin_range = self._lockin_device.set_input_range(lockin_range)
-                self.coupl = self._lockin_device.set_coupling_type(coupl)
-                self.tauA, self.tauB = self._lockin_device.set_time_constants(tauA, tauB)
-                self.slope = self._lockin_device.set_rolloff(slope)
-                self.config = self._lockin_device.set_input_config(config)
-                self.amplitude = self._lockin_device.set_amplitude(amplitude)
-                self.fm_int_freq = self._lockin_device.set_frequency(fm_int_freq)
-                self.phase, self.phase1 = self._lockin_device.set_phases(phase, phase1)
-                self.harmonic = self._lockin_device.set_harmonic(harmonic)
-            if isinstance(waiting_time_factor, (int, float)) and waiting_time_factor > 0:
-                self.waiting_time_factor = waiting_time_factor
+            if isinstance(uac, (int, float)) and isinstance(int_ref_freq, (int, float)) \
+                    and isinstance(phaseA, (int, float)) and isinstance(phaseB, (int, float)) \
+                    and isinstance(waiting_time_factor, (int, float)) and waiting_time_factor > 0:
+                self.lia_range = self._lockin_device.set_input_range(input_range)
+                self.lia_uac = self._lockin_device.set_amplitude(uac)
+                self.lia_coupling = self._lockin_device.set_coupling_type(coupling)
+                self.lia_int_ref_freq = self._lockin_device.set_frequency(int_ref_freq)
+                self.lia_tauA, self.lia_tauB = self._lockin_device.set_time_constants(tauA, tauB)
+                self.lia_phaseA, self.lia_phaseB = self._lockin_device.set_phases(phaseA, phaseB)
+                self.lia_waiting_time_factor = waiting_time_factor
+                self.lia_harmonic = self._lockin_device.set_harmonic(harmonic)
+                self.lia_slope = self._lockin_device.set_rolloff(slope)
+                self.lia_configuration = self._lockin_device.set_input_config(configuration)
             else:
-                self.log.warning('set_lockin_parameters failed. Waiting time factor input value is '
-                                 'no integer or float or is not bigger than zero.')
-
+                self.log.warning('set_lia_parameters failed. At least one value is not of the correct type.')
+        else:
+            self.log.warning('set_lia_parameters failed. The logic is locked.')
         # not updating tau value for now because the indexes are useful for the gui and the value for the logic,
         # im giving it the value for now
-        param_dict = {'lockin_range': self.lockin_range, 'coupl': self.coupl,
-                      # 'tauA': self.tauA, 'tauB': self.tauB,
-                      'slope': self.slope, 'config': self.config, 'amplitude': self.amplitude,
-                      'fm_int_freq': self.fm_int_freq, 'phase': self.phase, 'phase1': self.phase1,
-                      'harmonic': self.harmonic, 'waiting_time_factor': self.waiting_time_factor}
+        param_dict = {'lia_range': self.lia_range, 'lia_uac': self.lia_uac, 'lia_coupling': self.lia_coupling,
+                      'lia_int_ref_freq': self.lia_int_ref_freq, 'lia_tauA': self.lia_tauA, 'lia_phaseA': self.lia_phaseA,
+                      'lia_tauB': self.lia_tauB, 'lia_phaseB': self.lia_phaseB,
+                      'lia_waiting_time_factor': self.lia_waiting_time_factor, 'lia_harmonic': self.lia_harmonic,
+                      'lia_slope': self.lia_slope, 'lia_configuration': self.lia_configuration}
         self.sigParameterUpdated.emit(param_dict)
-        return self.lockin_range, self.coupl, self.tauA, self.tauB, self.slope, self.config, self.amplitude, \
-               self.fm_int_freq, self.phase, self.phase1, self.harmonic, self.waiting_time_factor
+        return self.lia_range, self.lia_uac, self.lia_coupling, self.lia_int_ref_freq, self.lia_tauA, self.lia_tauB, \
+               self.lia_phaseA, self.lia_phaseB, self.lia_waiting_time_factor, self.lia_harmonic, self.lia_slope, \
+               self.lia_configuration
+
 
     def lockin_ext_ref_on(self):
         if self.module_state() == 'locked':
             self.log.error('Can not change lockin reference. EPRoCLogic is already locked.')
         else:
             # setting the values for the reference
-            self.fm_shape, \
-            self.fm_freq, \
-            self.fm_dev, \
-            self.fm_mode = self._mw_device.set_fm(self.fm_shape, self.fm_freq, self.fm_dev, self.fm_mode)
+            self.ref_shape, \
+            self.ref_freq, \
+            self.ref_mode, \
+            self.ref_deviation = self._mw_device.set_reference(self.ref_shape, self.ref_freq, self.ref_mode, self.ref_deviation)
             error_code = self._lockin_device.change_reference('ext')
             # error_code = {0|1} where 0 means internal reference and 1 external reference
             # is this hardware dependent?
@@ -315,6 +320,16 @@ class EPRoCLogic(GenericLogic):
                 self.log.error('Change of reference failed')
         return
 
+    def set_ref_parameters(self, shape, freq, mode, dev):
+        if self.module_state() != 'locked':
+            if isinstance(freq, (int, float)) and isinstance(dev, (int, float)):
+                self.ref_shape, self.ref_freq, self.ref_mode, self.ref_deviation  = self._mw_device.set_reference(shape, freq, mode, dev)
+
+        param_dict = {'ref_shape': self.ref_shape, 'ref_freq': self.ref_freq, 'ref_deviation': self.ref_deviation,
+                      'ref_mode': self.ref_mode}
+        self.sigParameterUpdated.emit(param_dict)
+        return self.ref_shape, self.ref_freq, self.ref_deviation, self.ref_mode
+
     def set_eproc_scan_parameters(self, number_of_sweeps, number_of_accumulations):
         if self.module_state() != 'locked':
             if isinstance(number_of_sweeps, int) and isinstance(number_of_accumulations, int):
@@ -329,19 +344,20 @@ class EPRoCLogic(GenericLogic):
         self.sigParameterUpdated.emit(param_dict)
         return self.number_of_sweeps, self.number_of_accumulations
 
-    def mw_cw_on(self):
+    def mw_on(self):
         """
         Switching on the mw source in cw mode.
 
         @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
         """
+        '''
         if self.module_state() == 'locked':
             self.log.error('Can not start microwave in CW mode. EPRoCLogic is already locked.')
         else:
-            self.cw_mw_frequency, \
-            self.cw_mw_power, \
-            mode = self._mw_device.set_cw(self.cw_mw_frequency, self.cw_mw_power)
-            param_dict = {'cw_mw_frequency': self.cw_mw_frequency, 'cw_mw_power': self.cw_mw_power}
+            self.fs_mw_frequency, \
+            self.fs_mw_power, \
+            mode = self._mw_device.set_cw(self.fs_mw_frequency, self.fs_mw_power)
+            param_dict = {'fs_mw_frequency': self.fs_mw_frequency, 'fs_mw_power': self.fs_mw_power}
             self.sigParameterUpdated.emit(param_dict)
             if mode != 'cw':
                 self.log.error('Switching to CW microwave output mode failed.')
@@ -349,108 +365,22 @@ class EPRoCLogic(GenericLogic):
                 err_code = self._mw_device.cw_on()
                 if err_code < 0:
                     self.log.error('Activation of microwave output failed.')
-
-        mode, is_running = self._mw_device.get_status()
-        self.sigOutputStateUpdated.emit(mode, is_running)
-        return mode, is_running
-
-    def mw_sweep_on(self):
-        """
-        Switching on the mw source in list/sweep mode.
-
-        @return str, bool: active mode ['cw', 'list', 'sweep'], is_running
-        """
-
-        limits = self.get_hw_constraints()
-        param_dict = {}
-        self.final_freq_list = []
-        if self.mw_scanmode == MicrowaveMode.LIST:
-            final_freq_list = []
-            used_starts = []
-            used_steps = []
-            used_stops = []
-            for mw_start, mw_stop, mw_step in zip(self.mw_starts, self.mw_stops, self.mw_steps):
-                num_steps = int(np.rint((mw_stop - mw_start) / mw_step))
-                end_freq = mw_start + num_steps * mw_step
-                freq_list = np.linspace(mw_start, end_freq, num_steps + 1)
-
-                # adjust the end frequency in order to have an integer multiple of step size
-                # The master module (i.e. GUI) will be notified about the changed end frequency
-                final_freq_list.extend(freq_list)
-
-                used_starts.append(mw_start)
-                used_steps.append(mw_step)
-                used_stops.append(end_freq)
-
-            final_freq_list = np.array(final_freq_list)
-            if len(final_freq_list) >= limits.list_maxentries:
-                self.log.error('Number of frequency steps too large for microwave device.')
-                mode, is_running = self._mw_device.get_status()
-                self.sigOutputStateUpdated.emit(mode, is_running)
-                return mode, is_running
-            freq_list, self.sweep_mw_power, mode = self._mw_device.set_list(final_freq_list,
-                                                                            self.sweep_mw_power)
-
-            self.final_freq_list = np.array(freq_list)
-            self.mw_starts = used_starts
-            self.mw_stops = used_stops
-            self.mw_steps = used_steps
-            param_dict = {'mw_starts': used_starts, 'mw_stops': used_stops,
-                          'mw_steps': used_steps, 'sweep_mw_power': self.sweep_mw_power}
-
-            self.sigParameterUpdated.emit(param_dict)
-
-        elif self.mw_scanmode == MicrowaveMode.SWEEP:
-            if self.ranges == 1:
-                mw_stop = self.mw_stops[0]
-                mw_step = self.mw_steps[0]
-                mw_start = self.mw_starts[0]
-
-                if np.abs(mw_stop - mw_start) / mw_step >= limits.sweep_maxentries:
-                    self.log.warning('Number of frequency steps too large for microwave device. '
-                                     'Lowering resolution to fit the maximum length.')
-                    mw_step = np.abs(mw_stop - mw_start) / (limits.list_maxentries - 1)
-                    self.sigParameterUpdated.emit({'mw_steps': [mw_step]})
-
-                sweep_return = self._mw_device.set_sweep(
-                    mw_start, mw_stop, mw_step, self.sweep_mw_power)
-                mw_start, mw_stop, mw_step, self.sweep_mw_power, mode = sweep_return
-
-                param_dict = {'mw_starts': [mw_start], 'mw_stops': [mw_stop],
-                              'mw_steps': [mw_step], 'sweep_mw_power': self.sweep_mw_power}
-                self.final_freq_list = np.arange(mw_start, mw_stop + mw_step, mw_step)
-            else:
-                self.log.error('sweep mode only works for one frequency range.')
-
-        else:
-            self.log.error('Scanmode not supported. Please select SWEEP or LIST.')
-
+        '''
+        self.fs_mw_frequency, \
+        self.fs_mw_power, \
+        mode = self._mw_device.set_cw(self.fs_mw_frequency, self.fs_mw_power)
+        param_dict = {'fs_mw_frequency': self.fs_mw_frequency, 'fs_mw_power': self.fs_mw_power}
         self.sigParameterUpdated.emit(param_dict)
-
-        if mode != 'list' and mode != 'sweep':
-            self.log.error('Switching to list/sweep microwave output mode failed.')
-        elif self.mw_scanmode == MicrowaveMode.SWEEP:
-            err_code = self._mw_device.sweep_on()
-            if err_code < 0:
-                self.log.error('Activation of microwave output failed.')
+        if mode != 'cw':
+            self.log.error('Switching to CW microwave output mode failed.')
         else:
-            err_code = self._mw_device.list_on()
+            err_code = self._mw_device.cw_on()
             if err_code < 0:
                 self.log.error('Activation of microwave output failed.')
 
         mode, is_running = self._mw_device.get_status()
-        self.sigOutputStateUpdated.emit(mode, is_running)
+        self.sigOutputStateUpdated.emit(is_running)
         return mode, is_running
-
-    def reset_sweep(self):
-        """
-        Resets the list/sweep mode of the microwave source to the first frequency step.
-        """
-        if self.mw_scanmode == MicrowaveMode.SWEEP:
-            self._mw_device.reset_sweeppos()
-        elif self.mw_scanmode == MicrowaveMode.LIST:
-            self._mw_device.reset_listpos()
-        return
 
     def mw_off(self):
         """ Switching off the MW source.
@@ -462,30 +392,41 @@ class EPRoCLogic(GenericLogic):
             self.log.error('Switching off microwave source failed.')
 
         mode, is_running = self._mw_device.get_status()
-        self.sigOutputStateUpdated.emit(mode, is_running)
+        self.sigOutputStateUpdated.emit(is_running)
         return mode, is_running
 
-    def start_mwsweep_eproc(self):
+    def start_eproc(self):
         with self.threadlock:
             if self.module_state() == 'locked':
                 self.log.error('Can not start EPRoC scan. Logic is already locked.')
                 return -1
 
-            self.module_state.lock()
-            self.stopRequested = False
-            # self.fc.clear_result()
-
-            self.elapsed_sweeps = 0
-            self.actual_frequency_index = 0    # maybe this could be called elapsed_frequency_index to be coherent, but I think there should be some changes in the rest of the code then
+            self.check_ranges()
+            if self.is_microwave_sweep:
+                self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power = \
+                    self.set_ms_parameters(self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power)
+                self.ms_actual_frequency = self.ms_start
+            else:
+                self.fs_start, self.fs_step, self.fs_stop, self.fs_mw_frequency, self.fs_mw_power = \
+                    self.set_fs_parameters(self.fs_start, self.fs_step, self.fs_stop, self.fs_mw_frequency, self.fs_mw_power)
+                self.fs_actual_field = self.fs_start
 
             # can be modified, look at lockin manual
-            if self.tauB > self.tauA:
-                self.waiting_time = self.tauB * self.waiting_time_factor    # in seconds
+            if self.lia_tauB > self.lia_tauA:
+                self.lia_waiting_time = self.lia_tauB * self.lia_waiting_time_factor    # in seconds
             else:
-                self.waiting_time = self.tauA * self.waiting_time_factor
+                self.lia_waiting_time = self.lia_tauA * self.lia_waiting_time_factor
 
-            self._mw_device.set_internal_trigger()
-            mode, is_running = self.mw_sweep_on()
+            self.elapsed_sweeps = 0
+            self.elapsed_accumulations = 0
+            self.actual_index = 0    # maybe this could be called elapsed_index to be coherent, but I think there should be some changes in the rest of the code then
+
+            remaining_time = self.lia_waiting_time * self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps
+            self._startTime = time.time()
+
+            if self.is_external_reference:
+                self._mw_device.reference_on()
+            mode, is_running = self.mw_on()
             if not is_running:
                 self.module_state.unlock()
                 return -1
@@ -495,13 +436,18 @@ class EPRoCLogic(GenericLogic):
                 [self.number_of_sweeps,
                 self.number_of_accumulations,
                 self.eproc_plot_x.size,
-                2] # number of channels {2 or 4}
+                4]  # number of channels {2 or 4}
             )
 
-            self.sigNextFreq.emit()
+            self.module_state.lock()
+            self.stopRequested = False
+            # self.fc.clear_result()
+
+            self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
+            self.sigNextMeasure.emit()
             return 0
 
-    def stop_mwsweep_eproc(self):
+    def stop_eproc(self):
         """ Stop the EPRoC scan.
 
         @return int: error code (0:OK, -1:error)
@@ -511,47 +457,77 @@ class EPRoCLogic(GenericLogic):
                 self.stopRequested = True
         return 0
 
-    def _next_freq(self):
+    def _next_measure(self):
         with self.threadlock:
             # If the eproc measurement is not running do nothing
             if self.module_state() != 'locked':
                 return
 
-            # Stop measurement if stop has been requested
             if self.stopRequested:
                 self.stopRequested = False
+                self.measurement_duration = time.time() - self._startTime
                 self.mw_off()
+                if self.is_external_reference:
+                    self._mw_device.reference_off()
                 self.module_state.unlock()
                 return
 
-            # we put this here because the start of the sweep is at the frequency start-step
-            self._mw_device.trigger()
+            time.sleep(self.lia_waiting_time)
+            self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index, :] = self._lockin_device.get_data_lia()[:4] #this is for 4 channels
+            # this may be the solution for the stoprequested problem
+            '''
+            if error:
+                self.stopRequested = True
+                self.sigNextLine.emit()
+                return
+            '''
 
-            time.sleep(self.waiting_time)
+            self.elapsed_accumulations += 1
 
-            for i in range(self.number_of_accumulations):
-                # maybe stoprequested should also be checked in here somehow because if there are too many accumulations than one has to wait a lot
-                self.eproc_raw_data[self.elapsed_sweeps, i, self.actual_frequency_index, :] = self._lockin_device.get_data_lia()[:2]  #this is for two channels
-                time.sleep(self.waiting_time)   # this can be shortened almost for sure
-                # this may be the solution for the stoprequested problem
-                '''
-                if error:
-                    self.stopRequested = True
-                    self.sigNextLine.emit()
-                    return
-                '''
+            remaining_time = self.lia_waiting_time * \
+                             (self.number_of_accumulations  * self.eproc_plot_x.size * self.number_of_sweeps -
+                               (self.elapsed_accumulations + self.number_of_accumulations * self.actual_index +
+                                 self.number_of_accumulations * self.eproc_plot_x.size * self.elapsed_sweeps))
 
-            # average over accumulations for the current frequency and the current sweep
-            new_value = np.mean(self.eproc_raw_data[self.elapsed_sweeps, :, self.actual_frequency_index, :],
-                                axis=0,     #axis = 0 in this case means an average over accumulations
-                                dtype=np.float64)
+            if self.elapsed_accumulations == self.number_of_accumulations:
+                # average over accumulations for the current frequency and the current sweep
+                new_value = np.mean(self.eproc_raw_data[self.elapsed_sweeps, :, self.actual_index, :],
+                                    axis=0,     #axis = 0 in this case means an average over accumulations
+                                    dtype=np.float64)
 
-            self.eproc_plot_y[self.actual_frequency_index, :] = (self.eproc_plot_y[self.actual_frequency_index, :] * self.elapsed_sweeps + new_value) / (self.elapsed_sweeps + 1)
+                self.eproc_plot_y[self.actual_index, :] = (self.eproc_plot_y[self.actual_index, :] * self.elapsed_sweeps + new_value) / (self.elapsed_sweeps + 1)
 
+                self.elapsed_accumulations = 0
+
+                # I can move this to the end of the method, can't I?
+                self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
+
+                # understand where to put this: at the start or end?
+                if self.actual_index == self.eproc_plot_x.size - 1:
+                    if self.is_microwave_sweep:
+                        # this is going to go at the end
+                        self.ms_actual_frequency = self.ms_start
+                    else:
+                        self.fs_actual_field = self.fs_start
+                    self.elapsed_sweeps += 1
+                    self.actual_index = 0
+                    if self.elapsed_sweeps == self.number_of_sweeps:
+                        # stop scan or stop requested
+                        self.stopRequested = True
+                else:
+                    if self.is_microwave_sweep:
+                        self.ms_actual_frequency, self.ms_mw_power, mode = \
+                            self._mw_device.set_cw(self.ms_actual_frequency + self.ms_step, None)
+                        # SHOULD IT STAY OR SHOULD IT GO
+                        time.sleep(self.lia_waiting_time)
+                    else:
+                        self.fs_actual_field = self._magnet.set_central_field(self.fs_actual_field + self.fs_step)
+                        time.sleep(self.lia_waiting_time)
+                    self.actual_index += 1
             # here is the old method, where we update the all eproc_plot_y array at each frequency
             '''
             # the average of the last line is the same for evey value of elapsed_sweeps
-            average_last_line = np.mean(self.eproc_raw_data[self.elapsed_sweeps, :, :self.actual_frequency_index + 1, :], axis=0) #axis = 0 in this case means an average over accumulations
+            average_last_line = np.mean(self.eproc_raw_data[self.elapsed_sweeps, :, :self.actual_index + 1, :], axis=0) #axis = 0 in this case means an average over accumulations
 
             # if elapsed_sweeps == 0: we are done, the values at frequency larger than the one we are at are going
             # to stay equal to zero
@@ -573,20 +549,8 @@ class EPRoCLogic(GenericLogic):
                 for i in range(len(average_last_line)):
                     self[i] = (average_previous_sweeps[i] * self.elapsed_sweeps + average_last_line[i]) / (self.elapsed_sweeps + 1)
             '''
-
-            # understand where to put this: at the start or end?
-            if self.actual_frequency_index == self.eproc_plot_x.size - 1:
-                self.reset_sweep()
-                self.elapsed_sweeps += 1
-                self.actual_frequency_index = 0
-                if self.elapsed_sweeps == self.number_of_sweeps:
-                    # stop scan or stop requested
-                    self.stopRequested = True
-            else:
-                self.actual_frequency_index += 1
-
-            self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
-            self.sigNextFreq.emit()
+            self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
+            self.sigNextMeasure.emit()
             return
 
     def get_hw_constraints(self):
@@ -596,89 +560,107 @@ class EPRoCLogic(GenericLogic):
         constraints = self._mw_device.get_limits()
         return constraints
 
+    def get_time_constants(self):
+        return self._lockin_device.tau_values
+
     def save_eproc_data(self, tag=None):
         """ Saves the current EPRoC data to a file."""
         timestamp = datetime.datetime.now()
         filepath = self._save_logic.get_path_for_module(module_name='EPRoC')
 
         if tag is None:
-            tag = ''
+            tag = timestamp
+        tag_raw = tag + '_rawdata'
+        ending = '.dat'
 
-        for nch, channel in enumerate(self.get_odmr_channels()):
-            # first save raw data for each channel
-            if len(tag) > 0:
-                filelabel_raw = '{0}_ODMR_data_ch{1}_raw'.format(tag, nch)
-            else:
-                filelabel_raw = 'ODMR_data_ch{0}_raw'.format(nch)
+        # Data, on which the average on accumulations and sweeps was performed
+        eproc_data_list = [self.eproc_plot_x]
+        eproc_data_list2 = [self.eproc_plot_x]
 
-            data_raw = OrderedDict()
-            data_raw['count data (counts/s)'] = self.odmr_raw_data[:self.elapsed_sweeps, nch, :]
-            parameters = OrderedDict()
-            parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
-            parameters['Microwave Sweep Power (dBm)'] = self.sweep_mw_power
-            parameters['Run Time (s)'] = self.run_time
-            parameters['Number of frequency sweeps (#)'] = self.elapsed_sweeps
-            parameters['Start Frequencies (Hz)'] = self.mw_starts
-            parameters['Stop Frequencies (Hz)'] = self.mw_stops
-            parameters['Step sizes (Hz)'] = self.mw_steps
-            parameters['Clock Frequencies (Hz)'] = self.clock_frequency
-            parameters['Channel'] = '{0}: {1}'.format(nch, channel)
-            self._save_logic.save_data(data_raw,
-                                       filepath=filepath,
-                                       parameters=parameters,
-                                       filelabel=filelabel_raw,
-                                       fmt='%.6e',
-                                       delimiter='\t',
-                                       timestamp=timestamp)
+        # if self.elapsed_sweeps == self.number_of_sweeps or self.elapsed_sweeps == 0:
+        for channel in range(len(self.eproc_raw_data[0, 0, 0, :])):
+            eproc_data_list.append(self.eproc_plot_y[:, channel])
+        # else:
+            # Average over accumulations and over sweeps until the last completed sweep
+        for channel in range(len(self.eproc_raw_data[0, 0, 0, :])):
+            eproc_data_list2.append(np.mean(self.eproc_raw_data[0:self.elapsed_sweeps, :, :, channel],
+                                           axis=(0, 1),
+                                           dtype=np.float64))
 
-            # now create a plot for each scan range
-            data_start_ind = 0
-            for ii, frequency_arr in enumerate(self.frequency_lists):
-                if len(tag) > 0:
-                    filelabel = '{0}_ODMR_data_ch{1}_range{2}'.format(tag, nch, ii)
-                else:
-                    filelabel = 'ODMR_data_ch{0}_range{1}'.format(nch, ii)
+        # Raw data, only the average on the accumulations was performed
+        eproc_raw_data_list = [self.eproc_plot_x]
+        for channel in range(4):
+            for sweep in range(self.elapsed_sweeps+1):
+                eproc_raw_data_list.append(np.mean(self.eproc_raw_data[sweep, :, :, channel],
+                                                   axis=0,     #axis = 0 in this case means an average over accumulations
+                                                   dtype=np.float64))
 
-                # prepare the data in a dict or in an OrderedDict:
-                data = OrderedDict()
-                data['frequency (Hz)'] = frequency_arr
+        eproc_data = OrderedDict()
+        eproc_data2 = OrderedDict()
+        eproc_raw_data = OrderedDict()
+        parameters = OrderedDict()
 
-                num_points = len(frequency_arr)
-                data_end_ind = data_start_ind + num_points
-                data['count data (counts/s)'] = self.odmr_plot_y[nch][data_start_ind:data_end_ind]
-                data_start_ind += num_points
+        if self.is_microwave_sweep:
+            eproc_data['Frequency\t\tChannel 1\t\tChannel 2\t\tChannel 3\t\tChannel 4'] = np.array(eproc_data_list).transpose()
+            eproc_data2['Frequency\t\tChannel 1\t\tChannel 2\t\tChannel 3\t\tChannel 4'] = np.array(eproc_data_list2).transpose()
+            eproc_raw_data['Frequency and raw data'] = np.array(eproc_raw_data_list).transpose()
+            parameters['Magnetic Field (G)'] = self.ms_field
+            parameters['Microwave Power (dBm)'] = self.ms_mw_power
+            parameters['Start Frequency (Hz)'] = self.ms_start
+            parameters['Step Size (Hz)'] = self.ms_step
+            parameters['Stop Frequency (Hz)'] = self.ms_stop
+        else:
+            eproc_data['Field\t\tChannel 1\t\tChannel 2\t\tChannel 3\t\tChannel 4'] = np.array(eproc_data_list).transpose()
+            eproc_raw_data['Field and raw data'] = np.array(eproc_raw_data_list).transpose()
+            parameters['Microwave Frequency (Hz)'] = self.fs_mw_frequency
+            parameters['Microwave Power (dBm)'] = self.fs_mw_power
+            parameters['Start Field (Hz)'] = self.fs_start
+            parameters['Step Size (Hz)'] = self.fs_step
+            parameters['Stop Field (Hz)'] = self.fs_stop
 
-                parameters = OrderedDict()
-                parameters['Microwave CW Power (dBm)'] = self.cw_mw_power
-                parameters['Microwave Sweep Power (dBm)'] = self.sweep_mw_power
-                parameters['Run Time (s)'] = self.run_time
-                parameters['Number of frequency sweeps (#)'] = self.elapsed_sweeps
-                parameters['Start Frequency (Hz)'] = frequency_arr[0]
-                parameters['Stop Frequency (Hz)'] = frequency_arr[-1]
-                parameters['Step size (Hz)'] = frequency_arr[1] - frequency_arr[0]
-                parameters['Clock Frequencies (Hz)'] = self.clock_frequency
-                parameters['Channel'] = '{0}: {1}'.format(nch, channel)
-                parameters['frequency range'] = str(ii)
+        parameters['Duration Of The Experiment'] = time.strftime('%Hh%Mm%Ss', time.gmtime(self.measurement_duration))
+        parameters['Sweeps'] = self.elapsed_sweeps
+        parameters['Accumulations Per Point'] = self.number_of_accumulations
 
-                key = 'channel: {0}, range: {1}'.format(nch, ii)
-                if key in self.fits_performed.keys():
-                    parameters['Fit function'] = self.fits_performed[key][3]
-                    for name, param in self.fits_performed[key][2].params.items():
-                        parameters[name] = str(param)
-                # add all fit parameter to the saved data:
+        parameters['Lockin Input Range (V)'] = self.lia_range
+        parameters['Lockin Amplitude (V)'] = self.lia_uac
+        parameters['Lockin Coupling'] = self.lia_coupling
+        parameters['Lockin tau A (s)'] = self.lia_tauA
+        parameters['Lockin Phase A (°)'] = self.lia_phaseA
+        parameters['Lockin tau B (s)'] = self.lia_tauB
+        parameters['Lockin Phase B (°)'] = self.lia_phaseB
+        parameters['Lockin Waiting Time Factor'] = self.lia_waiting_time_factor
+        parameters['Lockin Harmonic'] = self.lia_harmonic
+        parameters['Lockin Slope (dB/oct)'] = self.lia_slope
+        parameters['Lockin Configuration'] = self.lia_configuration
 
-                fig = self.draw_figure(nch, ii,
-                                       cbar_range=colorscale_range,
-                                       percentile_range=percentile_range)
+        if self.is_external_reference:
+            parameters['Modulation Signal Shape'] = self.ref_shape
+            parameters['Modulation Frequency (Hz)'] = self.ref_freq
+            parameters['Modulation Deviation (Hz)'] = self.ref_deviation
+            parameters['Modulation Mode'] = self.ref_mode
+        else:
+            parameters['Lockin Internal Modulation Frequency (Hz)'] = self.lia_int_ref_freq
 
-                self._save_logic.save_data(data,
-                                           filepath=filepath,
-                                           parameters=parameters,
-                                           filelabel=filelabel,
-                                           fmt='%.6e',
-                                           delimiter='\t',
-                                           timestamp=timestamp,
-                                           plotfig=fig)
+        self._save_logic.save_data(eproc_data,
+                                   filepath=filepath,
+                                   parameters=parameters,
+                                   filename=tag+ending,
+                                   fmt='%.6e',
+                                   delimiter='\t')
+        self._save_logic.save_data(eproc_data2,
+                                   filepath=filepath,
+                                   parameters=parameters,
+                                   filename=tag+'_2'+ending,
+                                   fmt='%.6e',
+                                   delimiter='\t')
 
-        self.log.info('ODMR data saved to:\n{0}'.format(filepath))
+        self._save_logic.save_data(eproc_raw_data,
+                                   filepath=filepath,
+                                   parameters=parameters,
+                                   filename=tag_raw+ending,
+                                   fmt='%.6e',
+                                   delimiter='\t')
+
+        self.log.info('EPRoC data saved to:\n{0}'.format(filepath))
         return

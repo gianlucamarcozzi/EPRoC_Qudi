@@ -30,10 +30,6 @@ class LockinInterface(metaclass=InterfaceMetaclass):
     """
 
     @abstract_interface_method
-    def get_values(self, param):
-        pass
-
-    @abstract_interface_method
     def set_input_range(self, r):
         pass
 

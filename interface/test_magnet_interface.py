@@ -34,9 +34,9 @@ class EprocMagnetInterface(metaclass=InterfaceMetaclass):
         return 0
 
     @abstract_interface_method
-    def cw_on(self):
+    def set_central_field(self):
         pass
 
     @abstract_interface_method
-    def set_cw(self, frequency=None, power=None):
+    def set_sweep(self, frequency=None, power=None):
         pass

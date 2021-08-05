@@ -770,6 +770,7 @@ class ODMRGui(GUIBase):
                     dspinbox_type_list = dspinbox_dict[identifier_name]
                     [dspinbox_type.setEnabled(True) for dspinbox_type in dspinbox_type_list]
                 self._mw.odmr_control_DockWidget.add_range_button.setEnabled(True)
+                self._mw.odmr_control_DockWidget.add_range_button.setEnabled(True)
                 self._mw.odmr_control_DockWidget.remove_range_button.setEnabled(True)
                 self._mw.sweep_power_DoubleSpinBox.setEnabled(True)
                 self._mw.runtime_DoubleSpinBox.setEnabled(True)

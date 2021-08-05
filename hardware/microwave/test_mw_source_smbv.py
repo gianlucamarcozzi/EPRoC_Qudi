@@ -208,8 +208,8 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
             current mode
         """
         mode, is_running = self.get_status()
-        if is_running:
-            self.off()
+        # if is_running:
+        #    self.off()
 
         # Activate CW mode
         if mode != 'cw':
@@ -311,7 +311,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
             self._connection.write(':POW {0:f}'.format(power))
             self._connection.write('*WAI')
 
-        self._command_wait('TRIG:FSW:SOUR AUTO')
+        self._command_wait('TRIG:FSW:SOUR SING')
         # self._command_wait('SWE:DWEL 2.')
         # self._command_wait('TRIG:FSW:SOUR EXT')
 
@@ -358,15 +358,13 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
 
     def set_internal_trigger(self):
         """
-        Set internal trigger to STEP (one trigger equals next frequency) and to stop at the end of the frequency sweep.
+        Set internal trigger to SING (one trigger equals next frequency) and to stop at the end of the frequency sweep.
         """
         mode, is_running = self.get_status()
         if is_running:
             self.off()
 
-        self._command_wait(':SWE:MODE STEP')
-
-        self._command_wait(':FSW:SOUR SING')
+        self._command_wait('TRIG:FSW:SOUR SING')
 
         return
 
@@ -415,40 +413,39 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
 
         return 0
     '''
-    def fm_on(self):
-
+    def reference_on(self):
         # How can I understand in a smart way if what is to be set is the channel FM1 or FM2?
         # Is current_mode needed at all? can it be eliminated (e.g. dummy instead of current_mode)?
-
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-
-        if is_fm_running:
-            return 0
-        else:
-            self._command_wait(':FM1:STAT ON')
-
-        is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        while not is_fm_running:
-            time.sleep(0.2)
-            is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        return 0
-
-    def fm_off(self):
-
-        is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-
+        is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
         if not is_fm_running:
-            return 0
-        else:
-            self._command_wait(':FM1:STAT OFF')
+            self._command_wait(':FM1:STAT ON')
+        if not is_lfo_running:
+            self._command_wait(':LFO ON')
 
-        is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        while is_fm_running:
+        while not is_fm_running or not is_lfo_running:
             time.sleep(0.2)
             is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
+            is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
+
         return 0
 
-    def set_fm(self, fm_shape = None, fm_freq = None, fm_deviation=None, fm_mode=None):
+    def reference_off(self):
+        is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
+        is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
+        if is_fm_running:
+            self._command_wait(':FM1:STAT OFF')
+        if is_lfo_running:
+            self._command_wait(':LFO OFF')
+
+        while is_fm_running or is_lfo_running:
+            time.sleep(0.2)
+            is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
+            is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
+
+        return 0
+
+    def set_reference(self, shape = None, freq = None, mode=None, dev=None):
         '''
         @param float deviation:
         @param str (or int) source: {EXT1|NOISe|LF1|LF2|INTernal|EXTernal}
@@ -463,66 +460,66 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
             current deviation_mode
             current mode
         '''
-
         # fm should not be on when set_fm is called. Nevertheless: check if fm is on or not and return it off at
         #                                                                                   the end in any case
         # If fm is on: turn it off, set new params, leave if off
         # If fm is off: set new params, leave it off
 
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        if is_fm_running:
+        is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
+        if is_fm_running or is_lfo_running:
             self.fm_off()
 
         # Set the shape of the modulation
-        if fm_shape is not None:
-            if fm_shape == 'Sine':
-                fm_shape = 'SINE'
-            elif fm_shape == 'Square':
-                fm_shape = 'SQU'
-            elif fm_shape == 'Pulse':
-                fm_shape = 'PULS'
-            elif fm_shape == 'Triangle':
-                fm_shape = 'TRI'
-            elif fm_shape == 'Trapezoid':
-                fm_shape = 'TRAP'
-            self._command_wait(':LFO:SHAP {}'.format(fm_shape))
+        if shape is not None:
+            if shape == 'Sine':
+                shape = 'SINE'
+            elif shape == 'Square':
+                shape = 'SQU'
+            elif shape == 'Pulse':
+                shape = 'PULS'
+            elif shape == 'Triangle':
+                shape = 'TRI'
+            elif shape == 'Trapezoid':
+                shape = 'TRAP'
+            self._command_wait(':LFO:SHAP {}'.format(shape))
 
         # Set modulation central frequency
-        if fm_freq is not None:
-            self._command_wait(':LFO:FREQ {0:f}'.format(fm_freq))
+        if freq is not None:
+            self._command_wait(':LFO:FREQ {0:f}'.format(freq))
 
         # Set the value of the deviation
-        if fm_deviation is not None:
-            self._command_wait(':FM1 {0:f}'.format(fm_deviation))
+        if dev is not None:
+            self._command_wait(':FM1 {0:f}'.format(dev))
 
         # Set fm_mode
-        if fm_mode is not None:
-            if fm_mode == 'High Bandwidth':
-                fm_mode = 'HBAN'
-            elif fm_mode == 'Low Noise':
-                fm_mode = 'LNO'
-            self._command_wait(':FM:MODE {}'.format(fm_mode))
+        if mode is not None:
+            if mode == 'High Bandwidth':
+                mode = 'HBAN'
+            elif mode == 'Low Noise':
+                mode = 'LNO'
+            self._command_wait(':FM:MODE {}'.format(mode))
 
         # Return actually set values (why? how are these used afterwards?)
         # Not sure about query syntax
         # Not sure if I should return also mode and is_running
 
-        actual_fm_shape = str(self._connection.query(':LFO:SHAP?'))
-        if actual_fm_shape == 'Sine':
-            actual_fm_shape = 'SINE'
-        elif actual_fm_shape == 'Square':
-            actual_fm_shape = 'SQU'
-        elif actual_fm_shape == 'Pulse':
-            actual_fm_shape = 'PULS'
-        elif actual_fm_shape == 'Triangle':
-            actual_fm_shape = 'TRI'
-        elif actual_fm_shape == 'Trapezoid':
-            actual_fm_shape = 'TRAP'
-        actual_fm_freq = float(self._connection.query(':LFO:FREQ?'))
-        actual_fm_deviation = float(self._connection.query(':FM1?'))
-        actual_fm_mode = str(self._connection.query(':FM1:MODE?'))
-        if actual_fm_mode == 'High Bandwidth':
-            actual_fm_mode = 'HBAN'
-        elif actual_fm_mode == 'Low Noise':
-            actual_fm_mode = 'LNO'
-        return actual_fm_shape, actual_fm_freq, actual_fm_deviation, actual_fm_mode
+        actual_shape = str(self._connection.query(':LFO:SHAP?'))
+        if actual_shape == 'SINE\n':
+            actual_shape = 'Sine'
+        elif actual_shape == 'SQU\n':
+            actual_shape = 'Square'
+        elif actual_shape == 'PULS\n':
+            actual_shape = 'Pulse'
+        elif actual_shape == 'TRI\n':
+            actual_shape = 'Triangle'
+        elif actual_shape == 'TRAP\n':
+            actual_shape = 'Trapezoid'
+        actual_freq = float(self._connection.query(':LFO:FREQ?'))
+        actual_dev = float(self._connection.query(':FM1?'))
+        actual_mode = str(self._connection.query(':FM1:MODE?'))
+        if actual_mode == 'HBAN\n':
+            actual_mode = 'High Bandwidth'
+        elif actual_mode == 'LNO\n':
+            actual_mode = 'Low Noise'
+        return actual_shape, actual_freq, actual_mode, actual_dev

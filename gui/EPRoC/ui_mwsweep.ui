@@ -14,66 +14,70 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <property name="leftMargin">
-     <number>25</number>
+   <widget class="PlotWidget" name="channel1_PlotWidget">
+    <property name="geometry">
+     <rect>
+      <x>25</x>
+      <y>25</y>
+      <width>362</width>
+      <height>149</height>
+     </rect>
     </property>
-    <property name="topMargin">
-     <number>25</number>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <horstretch>1</horstretch>
+      <verstretch>1</verstretch>
+     </sizepolicy>
     </property>
-    <property name="rightMargin">
-     <number>25</number>
+   </widget>
+   <widget class="PlotWidget" name="channel2_PlotWidget">
+    <property name="geometry">
+     <rect>
+      <x>392</x>
+      <y>25</y>
+      <width>362</width>
+      <height>149</height>
+     </rect>
     </property>
-    <property name="bottomMargin">
-     <number>25</number>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <horstretch>1</horstretch>
+      <verstretch>1</verstretch>
+     </sizepolicy>
     </property>
-    <property name="horizontalSpacing">
-     <number>5</number>
+   </widget>
+   <widget class="PlotWidget" name="channel3_PlotWidget">
+    <property name="geometry">
+     <rect>
+      <x>25</x>
+      <y>184</y>
+      <width>362</width>
+      <height>149</height>
+     </rect>
     </property>
-    <property name="verticalSpacing">
-     <number>10</number>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <horstretch>1</horstretch>
+      <verstretch>1</verstretch>
+     </sizepolicy>
     </property>
-    <item row="0" column="0">
-     <widget class="PlotWidget" name="channel0_PlotWidget">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>1</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="1">
-     <widget class="PlotWidget" name="channel1_PlotWidget">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>1</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="PlotWidget" name="channel2_PlotWidget">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>1</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="1">
-     <widget class="PlotWidget" name="channel3_PlotWidget">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-        <horstretch>1</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
-     </widget>
-    </item>
-   </layout>
+   </widget>
+   <widget class="PlotWidget" name="channel4_PlotWidget">
+    <property name="geometry">
+     <rect>
+      <x>392</x>
+      <y>184</y>
+      <width>362</width>
+      <height>149</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <horstretch>1</horstretch>
+      <verstretch>1</verstretch>
+     </sizepolicy>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -145,44 +149,41 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QGridLayout" name="gridLayout_2">
-     <item row="8" column="1">
-      <widget class="QComboBox" name="source_shape_comboBox">
-       <item>
-        <property name="text">
-         <string>Sine</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Square</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Pulse</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Triangle</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Trapezoid</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="6" column="0">
-      <widget class="QRadioButton" name="external_reference_radioButton">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_19">
        <property name="text">
-        <string>External reference</string>
+        <string>Range (V)</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="3">
-      <widget class="ScienDSpinBox" name="lockin_phase_DoubleSpinBox">
+     <item row="0" column="1">
+      <widget class="QComboBox" name="lockin_range_comboBox">
+       <item>
+        <property name="text">
+         <string>0.1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>10</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_17">
+       <property name="text">
+        <string>Amplitude</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="3">
+      <widget class="ScienDSpinBox" name="lockin_amplitude_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -190,10 +191,10 @@
         </sizepolicy>
        </property>
        <property name="suffix">
-        <string>°</string>
+        <string>V</string>
        </property>
        <property name="decimals">
-        <number>1</number>
+        <number>6</number>
        </property>
        <property name="maximum">
         <double>1000000000.000000000000000</double>
@@ -203,174 +204,31 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_12">
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_9">
        <property name="text">
-        <string>Waiting time factor</string>
+        <string>Coupling</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
-      <widget class="QLabel" name="label_10">
+     <item row="1" column="1">
+      <widget class="QComboBox" name="lockin_acdc_coupling_comboBox">
+       <item>
+        <property name="text">
+         <string>dc</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>ac</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLabel" name="label_7">
        <property name="text">
-        <string>Phase</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QComboBox" name="lockin_taua_comboBox">
-       <item>
-        <property name="text">
-         <string>0.1ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>0.2ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>0.5ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>1ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>2ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>5ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>10ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>20ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>50ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>100ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>200ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>500ms</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>1s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>2s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>5s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>10s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>20s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>50s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>100s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>200s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>500s</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>1ks</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="5" column="2">
-      <widget class="QLabel" name="label_20">
-       <property name="text">
-        <string>Configuration</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_11">
-       <property name="text">
-        <string>Slope</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_22">
-       <property name="text">
-        <string>tau B</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="3">
-      <widget class="ScienDSpinBox" name="lockin_phase1_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>°</string>
-       </property>
-       <property name="decimals">
-        <number>1</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
+        <string>Frequency</string>
        </property>
       </widget>
      </item>
@@ -403,121 +261,271 @@
        </property>
       </widget>
      </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="lockin_taua_comboBox">
+       <item>
+        <property name="text">
+         <string>0.1 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>0.2 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>0.5 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>1 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>2 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>5 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>10 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>20 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>50 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>100 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>200 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>500 ms</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>1 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>2 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>5 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>10 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>20 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>50 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>100 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>200 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>500 s</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>1 ks</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLabel" name="label_10">
+       <property name="text">
+        <string>Phase</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="ScienDSpinBox" name="lockin_phase_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>°</string>
+       </property>
+       <property name="decimals">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_22">
+       <property name="text">
+        <string>tau B</string>
+       </property>
+      </widget>
+     </item>
      <item row="3" column="1">
       <widget class="QComboBox" name="lockin_taub_comboBox">
        <item>
         <property name="text">
-         <string>0.1ms</string>
+         <string>0.1 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>0.2ms</string>
+         <string>0.2 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>0.5ms</string>
+         <string>0.5 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>1ms</string>
+         <string>1 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>2ms</string>
+         <string>2 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>5ms</string>
+         <string>5 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>10ms</string>
+         <string>10 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>20ms</string>
+         <string>20 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>50ms</string>
+         <string>50 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>100ms</string>
+         <string>100 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>200ms</string>
+         <string>200 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>500ms</string>
+         <string>500 ms</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>1s</string>
+         <string>1 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>2s</string>
+         <string>2 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>5s</string>
+         <string>5 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>10s</string>
+         <string>10 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>20s</string>
+         <string>20 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>50s</string>
+         <string>50 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>100s</string>
+         <string>100 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>200s</string>
+         <string>200 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>500s</string>
+         <string>500 s</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>1ks</string>
+         <string>1 ks</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>same as tauA</string>
+         <string>same as tau A</string>
         </property>
        </item>
       </widget>
@@ -526,6 +534,35 @@
       <widget class="QLabel" name="label_18">
        <property name="text">
         <string>Phase 1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="ScienDSpinBox" name="lockin_phase1_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>°</string>
+       </property>
+       <property name="decimals">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>Waiting time factor</string>
        </property>
       </widget>
      </item>
@@ -551,6 +588,56 @@
        </property>
       </widget>
      </item>
+     <item row="4" column="2">
+      <widget class="QLabel" name="label_16">
+       <property name="text">
+        <string>Harmonic</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="3">
+      <widget class="QSpinBox" name="harmonic_spinBox">
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>15</number>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Slope (dB/oct)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QComboBox" name="lockin_slope_comboBox">
+       <item>
+        <property name="text">
+         <string>6</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>12</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>24</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="5" column="2">
+      <widget class="QLabel" name="label_20">
+       <property name="text">
+        <string>Configuration</string>
+       </property>
+      </widget>
+     </item>
      <item row="5" column="3">
       <widget class="QComboBox" name="lockin_config_comboBox">
        <item>
@@ -570,157 +657,57 @@
        </item>
       </widget>
      </item>
-     <item row="5" column="1">
-      <widget class="QComboBox" name="lockin_slope_comboBox">
-       <item>
-        <property name="text">
-         <string>6dB/oct</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>12dB/oct</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>24dB/oct</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="4" column="3">
-      <widget class="QSpinBox" name="harmonic_spinBox">
-       <property name="minimum">
-        <number>1</number>
-       </property>
-       <property name="maximum">
-        <number>15</number>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="2">
-      <widget class="QLabel" name="label_16">
+     <item row="6" column="0">
+      <widget class="QRadioButton" name="external_reference_radioButton">
        <property name="text">
-        <string>Harmonic</string>
+        <string>External reference</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>Frequency</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QLabel" name="label_17">
-       <property name="text">
-        <string>Amplitude</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="lockin_acdc_coupling_comboBox">
-       <item>
-        <property name="text">
-         <string>dc</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>ac</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="0" column="3">
-      <widget class="ScienDSpinBox" name="lockin_amplitude_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>V</string>
-       </property>
-       <property name="decimals">
-        <number>6</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_9">
-       <property name="text">
-        <string>Coupling</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_19">
-       <property name="text">
-        <string>Range</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="ScienDSpinBox" name="lockin_range_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>V</string>
-       </property>
-       <property name="decimals">
-        <number>1</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="0">
+     <item row="7" column="0">
       <widget class="QLabel" name="label_14">
        <property name="text">
         <string>Shape</string>
        </property>
       </widget>
      </item>
-     <item row="9" column="0">
-      <widget class="QLabel" name="label_8">
+     <item row="7" column="1">
+      <widget class="QComboBox" name="source_shape_comboBox">
+       <item>
+        <property name="text">
+         <string>Sine</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Square</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Pulse</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Triangle</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Trapezoid</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="7" column="2">
+      <widget class="QLabel" name="label_15">
        <property name="text">
-        <string>Mode</string>
+        <string>Frequency</string>
        </property>
       </widget>
      </item>
-     <item row="9" column="1">
-      <widget class="QComboBox" name="mod_mode_comboBox">
-       <item>
-        <property name="text">
-         <string>High Bandwidth</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Low Noise</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="8" column="3">
+     <item row="7" column="3">
       <widget class="ScienDSpinBox" name="source_frequency_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -742,14 +729,35 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="2">
-      <widget class="QLabel" name="label_15">
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_8">
        <property name="text">
-        <string>Frequency</string>
+        <string>Mode</string>
        </property>
       </widget>
      </item>
-     <item row="9" column="3">
+     <item row="8" column="1">
+      <widget class="QComboBox" name="mod_mode_comboBox">
+       <item>
+        <property name="text">
+         <string>High Bandwidth</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Low Noise</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="8" column="2">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Deviation</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="3">
       <widget class="ScienDSpinBox" name="mod_dev_frequency_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -771,13 +779,6 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="2">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Deviation</string>
-       </property>
-      </widget>
-     </item>
     </layout>
    </widget>
   </widget>
@@ -789,17 +790,7 @@
     <number>4</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_3">
-    <layout class="QGridLayout" name="gridLayout_3">
-     <item row="2" column="3">
-      <widget class="QLCDNumber" name="elapsed_time_DisplayWidget">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-      </widget>
-     </item>
+    <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
       <widget class="QLabel" name="label">
        <property name="sizePolicy">
@@ -813,8 +804,8 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
-      <widget class="ScienDSpinBox" name="sweep_power_DoubleSpinBox">
+     <item row="0" column="1">
+      <widget class="ScienDSpinBox" name="cw_frequency_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -822,23 +813,16 @@
         </sizepolicy>
        </property>
        <property name="suffix">
-        <string>dBm</string>
+        <string>Hz</string>
        </property>
        <property name="decimals">
-        <number>5</number>
-       </property>
-       <property name="minimum">
-        <double>-1000.000000000000000</double>
+        <number>6</number>
        </property>
        <property name="maximum">
-        <double>100.000000000000000</double>
+        <double>1000000000.000000000000000</double>
        </property>
-      </widget>
-     </item>
-     <item row="3" column="0" colspan="4">
-      <widget class="Line" name="line">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
        </property>
       </widget>
      </item>
@@ -852,19 +836,6 @@
        </property>
        <property name="text">
         <string>CW Power :</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="2">
-      <widget class="QLabel" name="label_13">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Remaining Time (s) :</string>
        </property>
       </widget>
      </item>
@@ -925,10 +896,94 @@
      <item row="2" column="1">
       <widget class="QLCDNumber" name="elapsed_sweeps_DisplayWidget"/>
      </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_2">
+     <item row="2" column="2">
+      <widget class="QLabel" name="label_13">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Remaining Time (s) :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QLCDNumber" name="remaining_time_DisplayWidget">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0" colspan="4">
+      <widget class="Line" name="line_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_26">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Magnetic field:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QDoubleSpinBox" name="magnet_cf_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>G</string>
+       </property>
+       <property name="decimals">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0" colspan="4">
+      <widget class="Line" name="line_4">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="lineWidth">
+        <number>1</number>
+       </property>
+       <property name="midLineWidth">
+        <number>0</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_27">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -938,8 +993,8 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="ScienDSpinBox" name="cw_frequency_DoubleSpinBox">
+     <item row="6" column="1">
+      <widget class="ScienDSpinBox" name="sweep_power_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -947,16 +1002,16 @@
         </sizepolicy>
        </property>
        <property name="suffix">
-        <string>Hz</string>
+        <string>dBm</string>
        </property>
        <property name="decimals">
-        <number>6</number>
+        <number>5</number>
+       </property>
+       <property name="minimum">
+        <double>-1000.000000000000000</double>
        </property>
        <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
+        <double>100.000000000000000</double>
        </property>
       </widget>
      </item>
@@ -994,7 +1049,7 @@
         <number>1</number>
        </property>
        <property name="maximum">
-        <number>15</number>
+        <number>1000000</number>
        </property>
       </widget>
      </item>
@@ -1011,7 +1066,7 @@
         <number>1</number>
        </property>
        <property name="maximum">
-        <number>15</number>
+        <number>1000000</number>
        </property>
       </widget>
      </item>
