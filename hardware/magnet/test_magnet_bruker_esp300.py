@@ -23,6 +23,8 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
     _address = ConfigOption('gpib_address', missing='error')
     _timeout = ConfigOption('gpib_timeout', 10, missing='warn')
 
+    waiting_time = 0.5
+
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
         self._timeout = self._timeout * 1000
@@ -63,7 +65,7 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
 
     def set_central_field(self, field=None):
         self._connection.write('CF{}'.format(field))
-        time.sleep(1)
+        time.sleep(self.waiting_time)
         return field
 
     def set_sweep(self, cf=None, width=None, wait_time=None):

@@ -44,6 +44,7 @@ class EPRoCLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
     taskrunner = Connector(interface='TaskRunner')
     magnet = Connector(interface='EprocMagnetInterface')
+    powersupply = Connector(interface='ProcessControlInterface')
 
     # config option
     mw_scanmode = ConfigOption(
@@ -90,6 +91,11 @@ class EPRoCLogic(GenericLogic):
     ref_mode = StatusVar('ref_mode', 'HBAN')
     ref_deviation = StatusVar('ref_deviation', 1000)
 
+    power_supply_voltage_outp1 = StatusVar('power_supply_voltage_oup2', 2)
+    power_supply_voltage_outp2 = StatusVar('power_supply_voltage_outp2', 2)
+    power_supply_current_max_outp1 = StatusVar('power_supply_voltage_current_max_outp1', 0.1)
+    power_supply_current_max_outp2 = StatusVar('power_supply_voltage_current_max_outp2', 0.1)
+
     is_microwave_sweep = StatusVar('is_microwave_sweep', True)
     is_external_reference = StatusVar('is_external_reference', True)
 
@@ -114,9 +120,10 @@ class EPRoCLogic(GenericLogic):
         # Get connectors
         self._mw_device = self.microwave1()
         self._lockin_device = self.lockin()
-        self._save_logic = self.savelogic()
+        # self._save_logic = self.savelogic()
         self._taskrunner = self.taskrunner()
         self._magnet = self.magnet()
+        self._power_supply = self.powersupply()
 
         # Get hardware constraints
         limits = self.get_hw_constraints()
@@ -133,6 +140,7 @@ class EPRoCLogic(GenericLogic):
 
         # Set flag for stopping a measurement
         self.stopRequested = False
+        self.stopNextSweepRequested = False
 
         # Initalize the data arrays
         self._initialize_eproc_plots()
@@ -157,6 +165,8 @@ class EPRoCLogic(GenericLogic):
 
         self.set_ref_parameters(self.ref_shape, self.ref_freq, self.ref_mode, self.ref_deviation)
         self.set_eproc_scan_parameters(self.number_of_sweeps, self.number_of_accumulations)
+        self.set_power_supply(self.power_supply_voltage_outp1, self.power_supply_voltage_outp2,
+                              self.power_supply_current_max_outp1, self.power_supply_current_max_outp2)
         # Connect signals
         self.sigNextMeasure.connect(self._next_measure, QtCore.Qt.QueuedConnection)
         return
@@ -344,6 +354,47 @@ class EPRoCLogic(GenericLogic):
         self.sigParameterUpdated.emit(param_dict)
         return self.number_of_sweeps, self.number_of_accumulations
 
+    def power_supply_on(self):
+        if self.module_state() != 'locked':
+            status = self._power_supply.output_on()
+            if status != 1:
+                self.log.warning('power_supply_on failed. power_supply is still turned off.')
+        else:
+            self.log.warning('power_supply_on failed. Logic is locked.')
+        return
+
+    def power_supply_off(self):
+        if self.module_state() != 'locked':
+            status = self._power_supply.output_off()
+            if status == 1:
+                self.log.warning('power_supply_off failed. power_supply is still turned on.')
+        else:
+            self.log.warning('power_supply_off failed. Logic is locked.')
+        return
+
+    def set_power_supply(self, v1, v2, maxi1, maxi2):
+        if self.module_state() != 'locked':
+            if isinstance(v1, (int, float)) and isinstance(v2, (int, float)) and isinstance(maxi1, (int, float)) and \
+                    isinstance(maxi1, (int, float)) and not v1 < 0 and not v2 < 0 and not maxi1 < 0 and not maxi2 < 0:
+                self._power_supply.change_to_output1()
+                self.power_supply_voltage_outp1 = self._power_supply.set_control_value(v1)
+                self.power_supply_current_max_outp1 = self._power_supply.set_current_max(maxi1)
+                self._power_supply.change_to_output2()
+                self.power_supply_voltage_outp2 = self._power_supply.set_control_value(v2)
+                self.power_supply_current_max_outp2 = self._power_supply.set_current_max(maxi2)
+                self._power_supply.change_to_output1()
+            else:
+                self.log.warning('set_power_supply failed. Values are not float or int, or values are not positive')
+        else:
+            self.log.warning('set_power_supply failed. Logic is locked.')
+
+        param_dict = {'power_supply_voltage_outp1': self.power_supply_voltage_outp1,
+                      'power_supply_voltage_outp2': self.power_supply_voltage_outp2,
+                      'power_supply_current_max_outp1': self.power_supply_current_max_outp1,
+                      'power_supply_current_max_outp2': self.power_supply_current_max_outp2}
+        self.sigParameterUpdated.emit(param_dict)
+        return
+
     def mw_on(self):
         """
         Switching on the mw source in cw mode.
@@ -441,6 +492,7 @@ class EPRoCLogic(GenericLogic):
 
             self.module_state.lock()
             self.stopRequested = False
+            self.stopNextSweepRequested = False
             # self.fc.clear_result()
 
             self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
@@ -455,6 +507,16 @@ class EPRoCLogic(GenericLogic):
         with self.threadlock:
             if self.module_state() == 'locked':
                 self.stopRequested = True
+        return 0
+
+    def stop_eproc_next_sweep(self):
+        """ Stop the EPRoC scan.
+
+        @return int: error code (0:OK, -1:error)
+        """
+        with self.threadlock:
+            if self.module_state() == 'locked':
+                self.stopNextSweepRequested = True
         return 0
 
     def _next_measure(self):
@@ -511,18 +573,15 @@ class EPRoCLogic(GenericLogic):
                         self.fs_actual_field = self.fs_start
                     self.elapsed_sweeps += 1
                     self.actual_index = 0
-                    if self.elapsed_sweeps == self.number_of_sweeps:
+                    if self.elapsed_sweeps == self.number_of_sweeps or self.stopNextSweepRequested:
                         # stop scan or stop requested
                         self.stopRequested = True
                 else:
                     if self.is_microwave_sweep:
                         self.ms_actual_frequency, self.ms_mw_power, mode = \
                             self._mw_device.set_cw(self.ms_actual_frequency + self.ms_step, None)
-                        # SHOULD IT STAY OR SHOULD IT GO
-                        time.sleep(self.lia_waiting_time)
                     else:
                         self.fs_actual_field = self._magnet.set_central_field(self.fs_actual_field + self.fs_step)
-                        time.sleep(self.lia_waiting_time)
                     self.actual_index += 1
             # here is the old method, where we update the all eproc_plot_y array at each frequency
             '''

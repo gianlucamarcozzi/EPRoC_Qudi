@@ -65,12 +65,15 @@ class EPRoCGui(GUIBase):
     sigStopEproc = QtCore.Signal()
     sigExtRefOn = QtCore.Signal()
     sigExtRefOff = QtCore.Signal()
+    sigPowerSupplyOn = QtCore.Signal()
+    sigPowerSupplyOff = QtCore.Signal()
 
     sigMsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigFsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigScanParamsChanged = QtCore.Signal(int, int)
     sigRefParamsChanged = QtCore.Signal(str, float, str, float)
     sigLockinParamsChanged = QtCore.Signal(str, float, str, float, float, float, float, float, float, int, str, str)
+    sigPowerSupplyChanged = QtCore.Signal(float, float, float, float)
 
     sigSaveMeasurement = QtCore.Signal(str)
 
@@ -106,7 +109,7 @@ class EPRoCGui(GUIBase):
         self._mw.ms_mw_power_DoubleSpinBox.setMinimum(constraints.min_power)
 
         self._mw.save_tag_LineEdit = QtWidgets.QLineEdit(self._mw)
-        self._mw.save_tag_LineEdit.setMaximumWidth(500)
+        self._mw.save_tag_LineEdit.setMaximumWidth(300)
         self._mw.save_tag_LineEdit.setMinimumWidth(200)
         self._mw.save_tag_LineEdit.setToolTip('Enter a nametag which will be\n'
                                               'added to the filename.')
@@ -219,6 +222,11 @@ class EPRoCGui(GUIBase):
         self._mw.number_of_sweeps_SpinBox.setValue(self._eproc_logic.number_of_sweeps)
         self._mw.number_of_accumulations_SpinBox.setValue(self._eproc_logic.number_of_accumulations)
 
+        self._mw.power_supply_voltage_outp1_DoubleSpinBox.setValue(self._eproc_logic.power_supply_voltage_outp1)
+        self._mw.power_supply_voltage_outp2_DoubleSpinBox.setValue(self._eproc_logic.power_supply_voltage_outp2)
+        self._mw.power_supply_current_max_outp1_DoubleSpinBox.setValue(self._eproc_logic.power_supply_current_max_outp1)
+        self._mw.power_supply_current_max_outp2_DoubleSpinBox.setValue(self._eproc_logic.power_supply_current_max_outp2)
+
         self._mw.ref_shape_ComboBox.setCurrentText(self._eproc_logic.ref_shape)
         self._mw.ref_frequency_DoubleSpinBox.setValue(self._eproc_logic.ref_freq)
         self._mw.ref_deviation_DoubleSpinBox.setValue(self._eproc_logic.ref_deviation)
@@ -260,6 +268,7 @@ class EPRoCGui(GUIBase):
         self._mw.ms_RadioButton.toggled.connect(self.on_off_sweep)
         self._mw.fs_RadioButton.toggled.connect(self.on_off_sweep)
         self._mw.ref_RadioButton.toggled.connect(self.on_off_reference)
+        self._mw.power_supply_status_RadioButton.toggled.connect(self.on_off_power_supply)
 
         self._mw.number_of_sweeps_SpinBox.editingFinished.connect(self.change_scan_params)
         self._mw.number_of_accumulations_SpinBox.editingFinished.connect(self.change_scan_params)
@@ -269,8 +278,14 @@ class EPRoCGui(GUIBase):
         self._mw.ref_deviation_DoubleSpinBox.editingFinished.connect(self.change_ref_params)
         self._mw.ref_mode_ComboBox.currentTextChanged.connect(self.change_ref_params)
 
+        self._mw.power_supply_voltage_outp1_DoubleSpinBox.editingFinished.connect(self.change_power_supply)
+        self._mw.power_supply_voltage_outp2_DoubleSpinBox.editingFinished.connect(self.change_power_supply)
+        self._mw.power_supply_current_max_outp1_DoubleSpinBox.editingFinished.connect(self.change_power_supply)
+        self._mw.power_supply_current_max_outp2_DoubleSpinBox.editingFinished.connect(self.change_power_supply)
+
         # Internal trigger signals
         self._mw.action_run_stop.triggered.connect(self.run_stop_scan)
+        self._mw.action_stop_next_sweep.triggered.connect(self._eproc_logic.stop_eproc_next_sweep)
         self._mw.action_Save.triggered.connect(self.save_data)
 
         # Control/values-changed signals to logic
@@ -278,12 +293,15 @@ class EPRoCGui(GUIBase):
         self.sigStopEproc.connect(self._eproc_logic.stop_eproc, QtCore.Qt.QueuedConnection)
         self.sigExtRefOn.connect(self._eproc_logic.lockin_ext_ref_on, QtCore.Qt.QueuedConnection)
         self.sigExtRefOff.connect(self._eproc_logic.lockin_ext_ref_off, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyOn.connect(self._eproc_logic.power_supply_on, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyOff.connect(self._eproc_logic.power_supply_off, QtCore.Qt.QueuedConnection)
 
         self.sigMsParamsChanged.connect(self._eproc_logic.set_ms_parameters, QtCore.Qt.QueuedConnection)
         self.sigFsParamsChanged.connect(self._eproc_logic.set_fs_parameters, QtCore.Qt.QueuedConnection)
         self.sigLockinParamsChanged.connect(self._eproc_logic.set_lia_parameters, QtCore.Qt.QueuedConnection)
         self.sigRefParamsChanged.connect(self._eproc_logic.set_ref_parameters, QtCore.Qt.QueuedConnection)
         self.sigScanParamsChanged.connect(self._eproc_logic.set_eproc_scan_parameters, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyChanged.connect(self._eproc_logic.set_power_supply, QtCore.Qt.QueuedConnection)
 
         self.sigSaveMeasurement.connect(self._eproc_logic.save_eproc_data, QtCore.Qt.QueuedConnection)
 
@@ -291,16 +309,16 @@ class EPRoCGui(GUIBase):
         self._eproc_logic.sigParameterUpdated.connect(self.update_parameter,
                                                       QtCore.Qt.QueuedConnection)
         self._eproc_logic.sigOutputStateUpdated.connect(self.update_status,
-                                                       QtCore.Qt.QueuedConnection)
+                                                        QtCore.Qt.QueuedConnection)
         self._eproc_logic.sigSetLabelEprocPlots.connect(self.set_label_eproc_plots, QtCore.Qt.QueuedConnection)
         self._eproc_logic.sigEprocPlotsUpdated.connect(self.update_plots, QtCore.Qt.QueuedConnection)
         self._eproc_logic.sigEprocRemainingTimeUpdated.connect(self.update_remainingtime,
                                                                QtCore.Qt.QueuedConnection)
 
-        # External reference is always used
+        self._mw.action_stop_next_sweep.setEnabled(False)
+        # External reference is basically always used
         self._mw.ref_RadioButton.setChecked(True)
         self._mw.lia_frequency_DoubleSpinBox.setEnabled(False)
-
         if self._eproc_logic.is_microwave_sweep:
             self._mw.ms_RadioButton.setChecked(True)
             self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(False)
@@ -327,6 +345,7 @@ class EPRoCGui(GUIBase):
         # Disconnect signals
         self._eproc_logic.sigParameterUpdated.disconnect()
         self._eproc_logic.sigOutputStateUpdated.disconnect()
+        self._eproc_logic.sigSetLabelEprocPlots.disconnect()
         self._eproc_logic.sigEprocPlotsUpdated.disconnect()
         self._eproc_logic.sigEprocRemainingTimeUpdated.disconnect()
 
@@ -334,14 +353,18 @@ class EPRoCGui(GUIBase):
         self.sigStopEproc.disconnect()
         self.sigExtRefOn.disconnect()
         self.sigExtRefOff.disconnect()
-        self.sigMsParamsChanged.connect(self._eproc_logic.set_ms_parameters, QtCore.Qt.QueuedConnection)
-        self.sigFsParamsChanged.connect(self._eproc_logic.set_fs_parameters, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyOn.disconnect()
+        self.sigPowerSupplyOff.disconnect()
+        self.sigMsParamsChanged.disconnect()
+        self.sigFsParamsChanged.disconnect()
         self.sigLockinParamsChanged.disconnect()
         self.sigRefParamsChanged.disconnect()
         self.sigScanParamsChanged.disconnect()
+        self.sigPowerSupplyChanged.disconnect()
         self.sigSaveMeasurement.disconnect()
 
         self._mw.action_run_stop.triggered.disconnect()
+        self._mw.action_stop_next_sweep.triggered.disconnect()
         self._mw.action_Save.triggered.disconnect()
 
         self._mw.ms_field_DoubleSpinBox.editingFinished.disconnect()
@@ -369,7 +392,10 @@ class EPRoCGui(GUIBase):
         self._mw.lia_harmonic_SpinBox.editingFinished.disconnect()
         self._mw.lia_waiting_time_factor_DoubleSpinBox.editingFinished.disconnect()
 
+        self._mw.ms_RadioButton.toggled.disconnect()
+        self._mw.fs_RadioButton.toggled.disconnect()
         self._mw.ref_RadioButton.toggled.disconnect()
+        self._mw.power_supply_status_RadioButton.disconnect()
 
         self._mw.number_of_sweeps_SpinBox.editingFinished.disconnect()
         self._mw.number_of_accumulations_SpinBox.editingFinished.disconnect()
@@ -378,6 +404,12 @@ class EPRoCGui(GUIBase):
         self._mw.ref_frequency_DoubleSpinBox.editingFinished.disconnect()
         self._mw.ref_deviation_DoubleSpinBox.editingFinished.disconnect()
         self._mw.ref_mode_ComboBox.currentTextChanged.disconnect()
+
+        self._mw.power_supply_voltage_outp1_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.power_supply_voltage_outp2_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.power_supply_current_max_outp1_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.power_supply_current_max_outp2_DoubleSpinBox.editingFinished.disconnect()
+
         self._mw.close()
         return 0
 
@@ -619,6 +651,7 @@ class EPRoCGui(GUIBase):
         """ Manages what happens if eproc scan is started/stopped. """
         # Update measurement status (activate/deactivate widgets/actions)
         if is_checked:
+            self._mw.action_stop_next_sweep.setEnabled(True)
             # Set every Box and Button in the gui as not enabled
             for widget_name in self._mw.__dict__.keys():
                 if widget_name.endswith('Box') or widget_name.endswith('Button'):
@@ -638,9 +671,12 @@ class EPRoCGui(GUIBase):
         """
         # Block signals from firing
         self._mw.action_run_stop.blockSignals(True)
+        self._mw.action_stop_next_sweep.blockSignals(True)
 
         if not is_running:
             self._mw.action_run_stop.setChecked(False)
+            self._mw.action_stop_next_sweep.setChecked(False)
+            self._mw.action_stop_next_sweep.setEnabled(False)
             # Set enabled every Box and Button in the gui
             for widget_name in self._mw.__dict__.keys():
                 if widget_name.endswith('Box') or widget_name.endswith('Button'):
@@ -669,6 +705,7 @@ class EPRoCGui(GUIBase):
 
         # Unblock signal firing
         self._mw.action_run_stop.blockSignals(False)
+        self._mw.action_stop_next_sweep.blockSignals(False)
         return
 
     def update_plots(self, eproc_data_x, eproc_data_y):
@@ -861,6 +898,30 @@ class EPRoCGui(GUIBase):
             self._mw.number_of_accumulations_SpinBox.blockSignals(True)
             self._mw.number_of_accumulations_SpinBox.setValue(param)
             self._mw.number_of_accumulations_SpinBox.blockSignals(False)
+
+        param = param_dict.get('power_supply_voltage_outp1')
+        if param is not None:
+            self._mw.power_supply_voltage_outp1_DoubleSpinBox.blockSignals(True)
+            self._mw.power_supply_voltage_outp1_DoubleSpinBox.setValue(param)
+            self._mw.power_supply_voltage_outp1_DoubleSpinBox.blockSignals(False)
+
+        param = param_dict.get('power_supply_voltage_outp2')
+        if param is not None:
+            self._mw.power_supply_voltage_outp2_DoubleSpinBox.blockSignals(True)
+            self._mw.power_supply_voltage_outp2_DoubleSpinBox.setValue(param)
+            self._mw.power_supply_voltage_outp2_DoubleSpinBox.blockSignals(False)
+
+        param = param_dict.get('power_supply_current_max_outp1')
+        if param is not None:
+            self._mw.power_supply_current_max_outp1_DoubleSpinBox.blockSignals(True)
+            self._mw.power_supply_current_max_outp1_DoubleSpinBox.setValue(param)
+            self._mw.power_supply_current_max_outp1_DoubleSpinBox.blockSignals(False)
+
+        param = param_dict.get('power_supply_current_max_outp2')
+        if param is not None:
+            self._mw.power_supply_current_max_outp2_DoubleSpinBox.blockSignals(True)
+            self._mw.power_supply_current_max_outp2_DoubleSpinBox.setValue(param)
+            self._mw.power_supply_current_max_outp2_DoubleSpinBox.blockSignals(False)
         return
 
     def change_fs_params(self):
@@ -961,6 +1022,29 @@ class EPRoCGui(GUIBase):
         number_of_sweeps = self._mw.number_of_sweeps_SpinBox.value()
         number_of_accumulations = self._mw.number_of_accumulations_SpinBox.value()
         self.sigScanParamsChanged.emit(number_of_sweeps, number_of_accumulations)
+        return
+
+    def on_off_power_supply(self, is_checked):
+        if is_checked:
+            self._mw.power_supply_voltage_outp1_DoubleSpinBox.setEnabled(False)
+            self._mw.power_supply_voltage_outp2_DoubleSpinBox.setEnabled(False)
+            self._mw.power_supply_current_max_outp1_DoubleSpinBox.setEnabled(False)
+            self._mw.power_supply_current_max_outp2_DoubleSpinBox.setEnabled(False)
+            self.sigPowerSupplyOn.emit()
+        else:
+            self._mw.power_supply_voltage_outp1_DoubleSpinBox.setEnabled(True)
+            self._mw.power_supply_voltage_outp2_DoubleSpinBox.setEnabled(True)
+            self._mw.power_supply_current_max_outp1_DoubleSpinBox.setEnabled(True)
+            self._mw.power_supply_current_max_outp2_DoubleSpinBox.setEnabled(True)
+            self.sigPowerSupplyOff.emit()
+        return
+
+    def change_power_supply(self):
+        v1 = self._mw.power_supply_voltage_outp1_DoubleSpinBox.value()
+        v2 = self._mw.power_supply_voltage_outp2_DoubleSpinBox.value()
+        maxi1 = self._mw.power_supply_current_max_outp1_DoubleSpinBox.value()
+        maxi2 = self._mw.power_supply_current_max_outp2_DoubleSpinBox.value()
+        self.sigPowerSupplyChanged.emit(v1, v2, maxi1, maxi2)
         return
 
     def update_remainingtime(self, remaining_time, scanned_lines):
