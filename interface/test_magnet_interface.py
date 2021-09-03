@@ -36,7 +36,3 @@ class EprocMagnetInterface(metaclass=InterfaceMetaclass):
     @abstract_interface_method
     def set_central_field(self):
         pass
-
-    @abstract_interface_method
-    def set_sweep(self, frequency=None, power=None):
-        pass

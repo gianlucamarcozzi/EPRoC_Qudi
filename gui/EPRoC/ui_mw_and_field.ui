@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1236</width>
-    <height>690</height>
+    <width>1237</width>
+    <height>749</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,7 +71,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1236</width>
+     <width>1237</width>
      <height>21</height>
     </rect>
    </property>
@@ -981,9 +981,9 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QDockWidget" name="power_supply_DockWidget">
+  <widget class="QDockWidget" name="power_supply_board_DockWidget">
    <property name="windowTitle">
-    <string>Power Supply</string>
+    <string>Power Supply Board</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
@@ -991,7 +991,7 @@
    <widget class="QWidget" name="dockWidgetContents_7">
     <layout class="QGridLayout" name="gridLayout_7">
      <item row="0" column="0" colspan="2">
-      <widget class="QRadioButton" name="power_supply_status_RadioButton">
+      <widget class="QRadioButton" name="power_supply_board_RadioButton">
        <property name="text">
         <string>Power Supply Status</string>
        </property>
@@ -1012,7 +1012,7 @@
       </widget>
      </item>
      <item row="1" column="2">
-      <widget class="ScienDSpinBox" name="power_supply_voltage_outp1_DoubleSpinBox">
+      <widget class="ScienDSpinBox" name="psb_voltage_outp1_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -1041,7 +1041,7 @@
       </widget>
      </item>
      <item row="1" column="4">
-      <widget class="ScienDSpinBox" name="power_supply_current_max_outp1_DoubleSpinBox">
+      <widget class="ScienDSpinBox" name="psb_current_max_outp1_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -1077,7 +1077,7 @@
       </widget>
      </item>
      <item row="2" column="2">
-      <widget class="ScienDSpinBox" name="power_supply_voltage_outp2_DoubleSpinBox">
+      <widget class="ScienDSpinBox" name="psb_voltage_outp2_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -1106,7 +1106,156 @@
       </widget>
      </item>
      <item row="2" column="4">
-      <widget class="ScienDSpinBox" name="power_supply_current_max_outp2_DoubleSpinBox">
+      <widget class="ScienDSpinBox" name="psb_current_max_outp2_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>A</string>
+       </property>
+       <property name="decimals">
+        <number>4</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="power_supply_amplifier_DockWidget">
+   <property name="windowTitle">
+    <string>Power Supply Amplifier</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_4">
+    <layout class="QGridLayout" name="gridLayout_10">
+     <item row="0" column="0" colspan="2">
+      <widget class="QRadioButton" name="power_supply_amplifier_RadioButton">
+       <property name="text">
+        <string>Power Supply Status</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_34">
+       <property name="text">
+        <string>Output 1:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLabel" name="label_40">
+       <property name="text">
+        <string>Voltage:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="ScienDSpinBox" name="psa_voltage_outp1_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>V</string>
+       </property>
+       <property name="decimals">
+        <number>2</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="QLabel" name="label_42">
+       <property name="text">
+        <string>Max Current:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="4">
+      <widget class="ScienDSpinBox" name="psa_current_max_outp1_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>A</string>
+       </property>
+       <property name="decimals">
+        <number>4</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_36">
+       <property name="text">
+        <string>Output 2:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="label_39">
+       <property name="text">
+        <string>Voltage:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="ScienDSpinBox" name="psa_voltage_outp2_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>V</string>
+       </property>
+       <property name="decimals">
+        <number>2</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QLabel" name="label_41">
+       <property name="text">
+        <string>Max Current:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="4">
+      <widget class="ScienDSpinBox" name="psa_current_max_outp2_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>

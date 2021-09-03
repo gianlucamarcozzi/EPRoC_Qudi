@@ -25,20 +25,21 @@ from core.configoption import ConfigOption
 from interface.process_control_interface import ProcessControlInterface
 
 
-class E3646A(Base, ProcessControlInterface):
+class KA3305P(Base, ProcessControlInterface):
     """ Hardware module for power supply Keysight E3631A.
 
     Example config :
         voltage_generator:
-            module.Class: 'power_supply.Keysight_E3631A.E3631A'
-            address: 'GBIP0::5::INSTR'
+            module.Class: 'power_supply.RND_320KA3305P.KA3305P'
+            address: 'GBIP0::12::INSTR'
     """
 
     _address = ConfigOption('address', missing='error')
 
     _voltage_min = ConfigOption('voltage_min', 0)
-    _voltage_max = ConfigOption('voltage_max', 8)
-    _current_max = ConfigOption('current_max', 1.5)
+    _voltage_max = ConfigOption('voltage_max', 30)
+    _current_min = ConfigOption('current_min', 0)
+    _current_max = ConfigOption('current_max', 5)
 
     _inst = None
     model = ''
@@ -52,26 +53,23 @@ class E3646A(Base, ProcessControlInterface):
         except visa.VisaIOError:
             self.log.error('Could not connect to hardware. Please check the wires and the address.')
 
-        self.model = self._query('*IDN?').split(',')[1]
+        self.model = self._inst.query('*IDN?').split(' ')[1]
 
         self._write("*RST;*CLS")
         time.sleep(0.5)
-        self._query("*OPC?")
+        self._write("*OPC?")
 
-        self._write("INST P6V")
-        self._write("VOLT 0")
-        self._write("CURR 0")
+        self.set_control_value(0, 1)
+        self.set_control_value(0, 2)
+        self._write('OCP1')
+        self.set_current_max(0, 1)
+        self.set_current_max(0, 2)
         return
 
     def on_deactivate(self):
         """ Stops the module """
+        self.output_off()
         self._inst.close()
-        '''
-        if self._inst.session is not None:
-            print('not none')
-            self._write("OUTP OFF")
-            self._inst.close()
-        '''
         return
 
     def _write(self, cmd):
@@ -81,55 +79,57 @@ class E3646A(Base, ProcessControlInterface):
         return
 
     def _query(self, cmd):
-        """ Function to query hardware"""
-        return self._inst.query(cmd)
+        """ Function to query command to hardware"""
+        value = float(self._inst.query(cmd)[:-2])
+        time.sleep(.01)
+        return value
 
     def output_on(self):
-        self._write("OUTP ON")
-        actual_status = int(self._query('OUTP?')[0])
+        self._write("OUT1")
+        # STATUS?
+        '''
+        actual_status = int(self._write('OUTP?')[0])
         while actual_status != 1:
             time.sleep(0.2)
-            actual_status = int(self._query('OUTP?')[0])
-        return actual_status
+            actual_status = int(self._write('OUTP?')[0])
+        '''
+        # return actual_status
+        return
 
     def output_off(self):
-        self._write("OUTP OFF")
-        actual_status = int(self._query('OUTP?')[0])
+        self._write("OUT0")
+        # STATUS?
+        '''
+        actual_status = int(self._write('OUTP?')[0])
         while actual_status == 1:
             time.sleep(0.2)
-            actual_status = int(self._query('OUTP?')[0])
-        return actual_status
-
-    def change_output(self, outp):
-        """ Switch from the current output to output outp
-
-            @:param outp: {1|2} target output
-        """
-        self._write('INST OUT{}'.format(outp))
+            actual_status = int(self._write('OUTP?')[0])
+        '''
+        # return actual_status
         return
 
     def set_control_value(self, value, outp):
-        """ Set control value, here voltage.
+        """ Set control value, here heating power.
 
-            @param float value: control value
-            @param int outp: {1|2} output to change
-            @return float: actual control value
+            @param flaot value: control value
         """
-        self.change_output(outp)
         mini, maxi = self.get_control_limit()
         if mini <= value <= maxi:
-            self._write("VOLT {}".format(value))
+            self._write("VSET{}:{}".format(outp, value))
         else:
             self.log.error('Voltage value {} out of range'.format(value))
-        return self.get_control_value()
+        return self.get_control_value(outp)
 
-    def get_control_value(self):
-        return float(self._query("VOLT?").split('\r')[0])
+    def get_control_value(self, outp):
+        return float(self._query("VSET{}?".format(outp)))
 
-    def set_current_max(self, maxi, ch):
-        self.change_output(ch)
-        self._write('CURR {}'.format(maxi))
-        return float(self._query("CURR?").split('\r')[0])
+    def set_current_max(self, maxi, outp):
+        if self._current_min <= maxi < self._current_max:
+            self._write('OCPSET{}:{}'.format(outp, maxi))
+        else:
+            self.log.error('Max current value {} out of range'.format(maxi))
+        # Query OCPSTE is not in the manual
+        return maxi
 
     def get_control_unit(self):
         """ Get unit of control value.

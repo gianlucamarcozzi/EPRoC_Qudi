@@ -65,15 +65,18 @@ class EPRoCGui(GUIBase):
     sigStopEproc = QtCore.Signal()
     sigExtRefOn = QtCore.Signal()
     sigExtRefOff = QtCore.Signal()
-    sigPowerSupplyOn = QtCore.Signal()
-    sigPowerSupplyOff = QtCore.Signal()
+    sigPowerSupplyBoardOn = QtCore.Signal()
+    sigPowerSupplyBoardOff = QtCore.Signal()
+    sigPowerSupplyAmplifierOn = QtCore.Signal()
+    sigPowerSupplyAmplifierOff = QtCore.Signal()
 
     sigMsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigFsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigScanParamsChanged = QtCore.Signal(int, int)
     sigRefParamsChanged = QtCore.Signal(str, float, str, float)
     sigLockinParamsChanged = QtCore.Signal(str, float, str, float, float, float, float, float, float, int, str, str)
-    sigPowerSupplyChanged = QtCore.Signal(float, float, float, float)
+    sigPowerSupplyBoardParamsChanged = QtCore.Signal(float, float, float, float)
+    sigPowerSupplyAmplifierParamsChanged = QtCore.Signal(float, float, float, float)
 
     sigSaveMeasurement = QtCore.Signal(str)
 
@@ -222,10 +225,14 @@ class EPRoCGui(GUIBase):
         self._mw.number_of_sweeps_SpinBox.setValue(self._eproc_logic.number_of_sweeps)
         self._mw.number_of_accumulations_SpinBox.setValue(self._eproc_logic.number_of_accumulations)
 
-        self._mw.power_supply_voltage_outp1_DoubleSpinBox.setValue(self._eproc_logic.power_supply_voltage_outp1)
-        self._mw.power_supply_voltage_outp2_DoubleSpinBox.setValue(self._eproc_logic.power_supply_voltage_outp2)
-        self._mw.power_supply_current_max_outp1_DoubleSpinBox.setValue(self._eproc_logic.power_supply_current_max_outp1)
-        self._mw.power_supply_current_max_outp2_DoubleSpinBox.setValue(self._eproc_logic.power_supply_current_max_outp2)
+        self._mw.psb_voltage_outp1_DoubleSpinBox.setValue(self._eproc_logic.psb_voltage_outp1)
+        self._mw.psb_voltage_outp2_DoubleSpinBox.setValue(self._eproc_logic.psb_voltage_outp2)
+        self._mw.psb_current_max_outp1_DoubleSpinBox.setValue(self._eproc_logic.psb_current_max_outp1)
+        self._mw.psb_current_max_outp2_DoubleSpinBox.setValue(self._eproc_logic.psb_current_max_outp2)
+        self._mw.psa_voltage_outp1_DoubleSpinBox.setValue(self._eproc_logic.psa_voltage_outp1)
+        self._mw.psa_voltage_outp2_DoubleSpinBox.setValue(self._eproc_logic.psa_voltage_outp2)
+        self._mw.psa_current_max_outp1_DoubleSpinBox.setValue(self._eproc_logic.psa_current_max_outp1)
+        self._mw.psa_current_max_outp2_DoubleSpinBox.setValue(self._eproc_logic.psa_current_max_outp2)
 
         self._mw.ref_shape_ComboBox.setCurrentText(self._eproc_logic.ref_shape)
         self._mw.ref_frequency_DoubleSpinBox.setValue(self._eproc_logic.ref_freq)
@@ -268,7 +275,8 @@ class EPRoCGui(GUIBase):
         self._mw.ms_RadioButton.toggled.connect(self.on_off_sweep)
         self._mw.fs_RadioButton.toggled.connect(self.on_off_sweep)
         self._mw.ref_RadioButton.toggled.connect(self.on_off_reference)
-        self._mw.power_supply_status_RadioButton.toggled.connect(self.on_off_power_supply)
+        self._mw.power_supply_board_RadioButton.toggled.connect(self.on_off_psb)
+        self._mw.power_supply_amplifier_RadioButton.toggled.connect(self.on_off_psa)
 
         self._mw.number_of_sweeps_SpinBox.editingFinished.connect(self.change_scan_params)
         self._mw.number_of_accumulations_SpinBox.editingFinished.connect(self.change_scan_params)
@@ -278,10 +286,14 @@ class EPRoCGui(GUIBase):
         self._mw.ref_deviation_DoubleSpinBox.editingFinished.connect(self.change_ref_params)
         self._mw.ref_mode_ComboBox.currentTextChanged.connect(self.change_ref_params)
 
-        self._mw.power_supply_voltage_outp1_DoubleSpinBox.editingFinished.connect(self.change_power_supply)
-        self._mw.power_supply_voltage_outp2_DoubleSpinBox.editingFinished.connect(self.change_power_supply)
-        self._mw.power_supply_current_max_outp1_DoubleSpinBox.editingFinished.connect(self.change_power_supply)
-        self._mw.power_supply_current_max_outp2_DoubleSpinBox.editingFinished.connect(self.change_power_supply)
+        self._mw.psb_voltage_outp1_DoubleSpinBox.editingFinished.connect(self.change_psb_params)
+        self._mw.psb_voltage_outp2_DoubleSpinBox.editingFinished.connect(self.change_psb_params)
+        self._mw.psb_current_max_outp1_DoubleSpinBox.editingFinished.connect(self.change_psb_params)
+        self._mw.psb_current_max_outp2_DoubleSpinBox.editingFinished.connect(self.change_psb_params)
+        self._mw.psa_voltage_outp1_DoubleSpinBox.editingFinished.connect(self.change_psa_params)
+        self._mw.psa_voltage_outp2_DoubleSpinBox.editingFinished.connect(self.change_psa_params)
+        self._mw.psa_current_max_outp1_DoubleSpinBox.editingFinished.connect(self.change_psa_params)
+        self._mw.psa_current_max_outp2_DoubleSpinBox.editingFinished.connect(self.change_psa_params)
 
         # Internal trigger signals
         self._mw.action_run_stop.triggered.connect(self.run_stop_scan)
@@ -293,15 +305,18 @@ class EPRoCGui(GUIBase):
         self.sigStopEproc.connect(self._eproc_logic.stop_eproc, QtCore.Qt.QueuedConnection)
         self.sigExtRefOn.connect(self._eproc_logic.lockin_ext_ref_on, QtCore.Qt.QueuedConnection)
         self.sigExtRefOff.connect(self._eproc_logic.lockin_ext_ref_off, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyOn.connect(self._eproc_logic.power_supply_on, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyOff.connect(self._eproc_logic.power_supply_off, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyBoardOn.connect(self._eproc_logic.psb_on, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyBoardOff.connect(self._eproc_logic.psb_off, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyAmplifierOn.connect(self._eproc_logic.psa_on, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyAmplifierOff.connect(self._eproc_logic.psa_off, QtCore.Qt.QueuedConnection)
 
         self.sigMsParamsChanged.connect(self._eproc_logic.set_ms_parameters, QtCore.Qt.QueuedConnection)
         self.sigFsParamsChanged.connect(self._eproc_logic.set_fs_parameters, QtCore.Qt.QueuedConnection)
         self.sigLockinParamsChanged.connect(self._eproc_logic.set_lia_parameters, QtCore.Qt.QueuedConnection)
         self.sigRefParamsChanged.connect(self._eproc_logic.set_ref_parameters, QtCore.Qt.QueuedConnection)
         self.sigScanParamsChanged.connect(self._eproc_logic.set_eproc_scan_parameters, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyChanged.connect(self._eproc_logic.set_power_supply, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyBoardParamsChanged.connect(self._eproc_logic.set_psb_parameters, QtCore.Qt.QueuedConnection)
+        self.sigPowerSupplyAmplifierParamsChanged.connect(self._eproc_logic.set_psa_parameters, QtCore.Qt.QueuedConnection)
 
         self.sigSaveMeasurement.connect(self._eproc_logic.save_eproc_data, QtCore.Qt.QueuedConnection)
 
@@ -353,14 +368,17 @@ class EPRoCGui(GUIBase):
         self.sigStopEproc.disconnect()
         self.sigExtRefOn.disconnect()
         self.sigExtRefOff.disconnect()
-        self.sigPowerSupplyOn.disconnect()
-        self.sigPowerSupplyOff.disconnect()
+        self.sigPowerSupplyBoardOn.disconnect()
+        self.sigPowerSupplyBoardOff.disconnect()
+        self.sigPowerSupplyAmplifierOn.disconnect()
+        self.sigPowerSupplyAmplifierOff.disconnect()
         self.sigMsParamsChanged.disconnect()
         self.sigFsParamsChanged.disconnect()
         self.sigLockinParamsChanged.disconnect()
         self.sigRefParamsChanged.disconnect()
         self.sigScanParamsChanged.disconnect()
-        self.sigPowerSupplyChanged.disconnect()
+        self.sigPowerSupplyBoardParamsChanged.disconnect()
+        self.sigPowerSupplyAmplifierParamsChanged.disconnect()
         self.sigSaveMeasurement.disconnect()
 
         self._mw.action_run_stop.triggered.disconnect()
@@ -395,7 +413,8 @@ class EPRoCGui(GUIBase):
         self._mw.ms_RadioButton.toggled.disconnect()
         self._mw.fs_RadioButton.toggled.disconnect()
         self._mw.ref_RadioButton.toggled.disconnect()
-        self._mw.power_supply_status_RadioButton.disconnect()
+        self._mw.power_supply_board_RadioButton.toggled.disconnect()
+        self._mw.power_supply_amplifier_RadioButton.toggled.disconnect()
 
         self._mw.number_of_sweeps_SpinBox.editingFinished.disconnect()
         self._mw.number_of_accumulations_SpinBox.editingFinished.disconnect()
@@ -405,10 +424,14 @@ class EPRoCGui(GUIBase):
         self._mw.ref_deviation_DoubleSpinBox.editingFinished.disconnect()
         self._mw.ref_mode_ComboBox.currentTextChanged.disconnect()
 
-        self._mw.power_supply_voltage_outp1_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.power_supply_voltage_outp2_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.power_supply_current_max_outp1_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.power_supply_current_max_outp2_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.psb_voltage_outp1_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.psb_voltage_outp2_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.psb_current_max_outp1_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.psb_current_max_outp2_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.psa_voltage_outp1_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.psa_voltage_outp2_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.psa_current_max_outp1_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.psa_current_max_outp2_DoubleSpinBox.editingFinished.disconnect()
 
         self._mw.close()
         return 0
@@ -899,29 +922,53 @@ class EPRoCGui(GUIBase):
             self._mw.number_of_accumulations_SpinBox.setValue(param)
             self._mw.number_of_accumulations_SpinBox.blockSignals(False)
 
-        param = param_dict.get('power_supply_voltage_outp1')
+        param = param_dict.get('psb_voltage_outp1')
         if param is not None:
-            self._mw.power_supply_voltage_outp1_DoubleSpinBox.blockSignals(True)
-            self._mw.power_supply_voltage_outp1_DoubleSpinBox.setValue(param)
-            self._mw.power_supply_voltage_outp1_DoubleSpinBox.blockSignals(False)
+            self._mw.psb_voltage_outp1_DoubleSpinBox.blockSignals(True)
+            self._mw.psb_voltage_outp1_DoubleSpinBox.setValue(param)
+            self._mw.psb_voltage_outp1_DoubleSpinBox.blockSignals(False)
 
-        param = param_dict.get('power_supply_voltage_outp2')
+        param = param_dict.get('psb_voltage_outp2')
         if param is not None:
-            self._mw.power_supply_voltage_outp2_DoubleSpinBox.blockSignals(True)
-            self._mw.power_supply_voltage_outp2_DoubleSpinBox.setValue(param)
-            self._mw.power_supply_voltage_outp2_DoubleSpinBox.blockSignals(False)
+            self._mw.psb_voltage_outp2_DoubleSpinBox.blockSignals(True)
+            self._mw.psb_voltage_outp2_DoubleSpinBox.setValue(param)
+            self._mw.psb_voltage_outp2_DoubleSpinBox.blockSignals(False)
 
-        param = param_dict.get('power_supply_current_max_outp1')
+        param = param_dict.get('psb_current_max_outp1')
         if param is not None:
-            self._mw.power_supply_current_max_outp1_DoubleSpinBox.blockSignals(True)
-            self._mw.power_supply_current_max_outp1_DoubleSpinBox.setValue(param)
-            self._mw.power_supply_current_max_outp1_DoubleSpinBox.blockSignals(False)
+            self._mw.psb_current_max_outp1_DoubleSpinBox.blockSignals(True)
+            self._mw.psb_current_max_outp1_DoubleSpinBox.setValue(param)
+            self._mw.psb_current_max_outp1_DoubleSpinBox.blockSignals(False)
 
-        param = param_dict.get('power_supply_current_max_outp2')
+        param = param_dict.get('psb_current_max_outp2')
         if param is not None:
-            self._mw.power_supply_current_max_outp2_DoubleSpinBox.blockSignals(True)
-            self._mw.power_supply_current_max_outp2_DoubleSpinBox.setValue(param)
-            self._mw.power_supply_current_max_outp2_DoubleSpinBox.blockSignals(False)
+            self._mw.psb_current_max_outp2_DoubleSpinBox.blockSignals(True)
+            self._mw.psb_current_max_outp2_DoubleSpinBox.setValue(param)
+            self._mw.psb_current_max_outp2_DoubleSpinBox.blockSignals(False)
+
+        param = param_dict.get('psa_voltage_outp1')
+        if param is not None:
+            self._mw.psa_voltage_outp1_DoubleSpinBox.blockSignals(True)
+            self._mw.psa_voltage_outp1_DoubleSpinBox.setValue(param)
+            self._mw.psa_voltage_outp1_DoubleSpinBox.blockSignals(False)
+
+        param = param_dict.get('psa_voltage_outp2')
+        if param is not None:
+            self._mw.psa_voltage_outp2_DoubleSpinBox.blockSignals(True)
+            self._mw.psa_voltage_outp2_DoubleSpinBox.setValue(param)
+            self._mw.psa_voltage_outp2_DoubleSpinBox.blockSignals(False)
+
+        param = param_dict.get('psa_current_max_outp1')
+        if param is not None:
+            self._mw.psa_current_max_outp1_DoubleSpinBox.blockSignals(True)
+            self._mw.psa_current_max_outp1_DoubleSpinBox.setValue(param)
+            self._mw.psa_current_max_outp1_DoubleSpinBox.blockSignals(False)
+
+        param = param_dict.get('psa_current_max_outp2')
+        if param is not None:
+            self._mw.psa_current_max_outp2_DoubleSpinBox.blockSignals(True)
+            self._mw.psa_current_max_outp2_DoubleSpinBox.setValue(param)
+            self._mw.psa_current_max_outp2_DoubleSpinBox.blockSignals(False)
         return
 
     def change_fs_params(self):
@@ -1024,27 +1071,50 @@ class EPRoCGui(GUIBase):
         self.sigScanParamsChanged.emit(number_of_sweeps, number_of_accumulations)
         return
 
-    def on_off_power_supply(self, is_checked):
+    def on_off_psb(self, is_checked):
         if is_checked:
-            self._mw.power_supply_voltage_outp1_DoubleSpinBox.setEnabled(False)
-            self._mw.power_supply_voltage_outp2_DoubleSpinBox.setEnabled(False)
-            self._mw.power_supply_current_max_outp1_DoubleSpinBox.setEnabled(False)
-            self._mw.power_supply_current_max_outp2_DoubleSpinBox.setEnabled(False)
-            self.sigPowerSupplyOn.emit()
+            self._mw.psb_voltage_outp1_DoubleSpinBox.setEnabled(False)
+            self._mw.psb_voltage_outp2_DoubleSpinBox.setEnabled(False)
+            self._mw.psb_current_max_outp1_DoubleSpinBox.setEnabled(False)
+            self._mw.psb_current_max_outp2_DoubleSpinBox.setEnabled(False)
+            self.sigPowerSupplyBoardOn.emit()
         else:
-            self._mw.power_supply_voltage_outp1_DoubleSpinBox.setEnabled(True)
-            self._mw.power_supply_voltage_outp2_DoubleSpinBox.setEnabled(True)
-            self._mw.power_supply_current_max_outp1_DoubleSpinBox.setEnabled(True)
-            self._mw.power_supply_current_max_outp2_DoubleSpinBox.setEnabled(True)
-            self.sigPowerSupplyOff.emit()
+            self._mw.psb_voltage_outp1_DoubleSpinBox.setEnabled(True)
+            self._mw.psb_voltage_outp2_DoubleSpinBox.setEnabled(True)
+            self._mw.psb_current_max_outp1_DoubleSpinBox.setEnabled(True)
+            self._mw.psb_current_max_outp2_DoubleSpinBox.setEnabled(True)
+            self.sigPowerSupplyBoardOff.emit()
         return
 
-    def change_power_supply(self):
-        v1 = self._mw.power_supply_voltage_outp1_DoubleSpinBox.value()
-        v2 = self._mw.power_supply_voltage_outp2_DoubleSpinBox.value()
-        maxi1 = self._mw.power_supply_current_max_outp1_DoubleSpinBox.value()
-        maxi2 = self._mw.power_supply_current_max_outp2_DoubleSpinBox.value()
-        self.sigPowerSupplyChanged.emit(v1, v2, maxi1, maxi2)
+    def change_psb_params(self):
+        v1 = self._mw.psb_voltage_outp1_DoubleSpinBox.value()
+        v2 = self._mw.psb_voltage_outp2_DoubleSpinBox.value()
+        maxi1 = self._mw.psb_current_max_outp1_DoubleSpinBox.value()
+        maxi2 = self._mw.psb_current_max_outp2_DoubleSpinBox.value()
+        self.sigPowerSupplyBoardParamsChanged.emit(v1, v2, maxi1, maxi2)
+        return
+
+    def on_off_psa(self, is_checked):
+        if is_checked:
+            self._mw.psa_voltage_outp1_DoubleSpinBox.setEnabled(False)
+            self._mw.psa_voltage_outp2_DoubleSpinBox.setEnabled(False)
+            self._mw.psa_current_max_outp1_DoubleSpinBox.setEnabled(False)
+            self._mw.psa_current_max_outp2_DoubleSpinBox.setEnabled(False)
+            self.sigPowerSupplyAmplifierOn.emit()
+        else:
+            self._mw.psa_voltage_outp1_DoubleSpinBox.setEnabled(True)
+            self._mw.psa_voltage_outp2_DoubleSpinBox.setEnabled(True)
+            self._mw.psa_current_max_outp1_DoubleSpinBox.setEnabled(True)
+            self._mw.psa_current_max_outp2_DoubleSpinBox.setEnabled(True)
+            self.sigPowerSupplyAmplifierOff.emit()
+        return
+
+    def change_psa_params(self):
+        v1 = self._mw.psa_voltage_outp1_DoubleSpinBox.value()
+        v2 = self._mw.psa_voltage_outp2_DoubleSpinBox.value()
+        maxi1 = self._mw.psa_current_max_outp1_DoubleSpinBox.value()
+        maxi2 = self._mw.psa_current_max_outp2_DoubleSpinBox.value()
+        self.sigPowerSupplyAmplifierParamsChanged.emit(v1, v2, maxi1, maxi2)
         return
 
     def update_remainingtime(self, remaining_time, scanned_lines):

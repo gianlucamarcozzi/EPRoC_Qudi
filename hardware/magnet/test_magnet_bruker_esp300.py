@@ -27,7 +27,6 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
 
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
-        self._timeout = self._timeout * 1000
         # trying to load the visa connection to the module
         self.rm = visa.ResourceManager()
         try:
@@ -37,10 +36,7 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
             self.log.error('Could not connect to the address >>{}<<.'.format(self._address))
             raise
 
-        # self.model = self._connection.query('*IDN?').split(',')[1]
         self.log.info('Magnet initialised and connected.')
-        # self._command_wait('*CLS')
-        # self._command_wait('*RST')
         return
 
     def on_deactivate(self):
