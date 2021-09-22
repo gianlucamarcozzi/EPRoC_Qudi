@@ -22,7 +22,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import numpy as np
 import os
 import pyqtgraph as pg
-
+from core.util.modules import get_main_dir
 from core.connector import Connector
 from core.util import units
 from gui.guibase import GUIBase
@@ -45,12 +45,60 @@ class EPRoCMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'ui_mw_and_field.ui')
+        ui_file = os.path.join(this_dir, 'ui_eprocgui.ui')
 
         # Load it
         super(EPRoCMainWindow, self).__init__()
         uic.loadUi(ui_file, self)
         self.show()
+
+
+class EPRoCAnalysis(QtWidgets.QMainWindow):
+    """ The settings dialog for EPRoC measurements.
+    """
+
+    def __init__(self):
+        # Get the path to the *.ui file
+        this_dir = os.path.dirname(__file__)
+        ui_file = os.path.join(this_dir, 'ui_eproc_analysis.ui')
+
+        # Load it
+        super(EPRoCAnalysis, self).__init__()
+        uic.loadUi(ui_file, self)
+
+
+class EPRoCPsbDialog(QtWidgets.QDialog):
+
+    def __init__(self):
+        # Get the path to the *.ui file
+        this_dir = os.path.dirname(__file__)
+        ui_file = os.path.join(this_dir, 'ui_eproc_psb.ui')
+
+        # Load it
+        super(EPRoCPsbDialog, self).__init__()
+        uic.loadUi(ui_file, self)
+
+class EPRoCPowerSupplyOnDialog(QtWidgets.QDialog):
+
+    def __init__(self):
+        # Get the path to the *.ui file
+        this_dir = os.path.dirname(__file__)
+        ui_file = os.path.join(this_dir, 'ui_eproc_power_supply_on.ui')
+
+        # Load it
+        super(EPRoCPowerSupplyOnDialog, self).__init__()
+        uic.loadUi(ui_file, self)
+
+class EPRoCPowerSupplyOffDialog(QtWidgets.QDialog):
+
+    def __init__(self):
+        # Get the path to the *.ui file
+        this_dir = os.path.dirname(__file__)
+        ui_file = os.path.join(this_dir, 'ui_eproc_power_supply_off.ui')
+
+        # Load it
+        super(EPRoCPowerSupplyOffDialog, self).__init__()
+        uic.loadUi(ui_file, self)
 
 class EPRoCGui(GUIBase):
     """
@@ -63,6 +111,10 @@ class EPRoCGui(GUIBase):
 
     sigStartEproc = QtCore.Signal()
     sigStopEproc = QtCore.Signal()
+    sigToggleCwOn = QtCore.Signal()
+    sigToggleCwOff = QtCore.Signal()
+    sigToggleModulationOn = QtCore.Signal()
+    sigToggleModulationOff = QtCore.Signal()
     sigExtRefOn = QtCore.Signal()
     sigExtRefOff = QtCore.Signal()
     sigPowerSupplyBoardOn = QtCore.Signal()
@@ -75,6 +127,7 @@ class EPRoCGui(GUIBase):
     sigScanParamsChanged = QtCore.Signal(int, int)
     sigRefParamsChanged = QtCore.Signal(str, float, str, float)
     sigLockinParamsChanged = QtCore.Signal(str, float, str, float, float, float, float, float, float, int, str, str)
+    sigFrequencyMultiplierChanged = QtCore.Signal(int)
     sigPowerSupplyBoardParamsChanged = QtCore.Signal(float, float, float, float)
     sigPowerSupplyAmplifierParamsChanged = QtCore.Signal(float, float, float, float)
 
@@ -94,6 +147,9 @@ class EPRoCGui(GUIBase):
 
         # Use the inherited class 'Ui_EPRoCGuiUI' to create now the GUI element:
         self._mw = EPRoCMainWindow()
+        self._sd = EPRoCAnalysis()
+        self._psondialog = EPRoCPowerSupplyOnDialog()
+        self._psoffdialog = EPRoCPowerSupplyOffDialog()
 
         # Create a QSettings object for the mainwindow and store the actual GUI layout
         self.mwsettings = QtCore.QSettings("QUDI", "ODMR")
@@ -133,7 +189,8 @@ class EPRoCGui(GUIBase):
         self._mw.clear_odmr_PushButton.setEnabled(False)
         self._mw.toolBar.addWidget(self._mw.clear_odmr_PushButton)
         '''
-        self.ch1_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
+
+        self.ch1_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier,
                                          self._eproc_logic.eproc_plot_y[:, 0],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
@@ -141,7 +198,7 @@ class EPRoCGui(GUIBase):
                                          symbolBrush=palette.c1,
                                          symbolSize=7)
 
-        self.ch2_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
+        self.ch2_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier,
                                          self._eproc_logic.eproc_plot_y[:, 1],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
@@ -149,7 +206,7 @@ class EPRoCGui(GUIBase):
                                          symbolBrush=palette.c1,
                                          symbolSize=7)
 
-        self.ch3_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
+        self.ch3_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier,
                                          self._eproc_logic.eproc_plot_y[:, 2],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
@@ -157,7 +214,7 @@ class EPRoCGui(GUIBase):
                                          symbolBrush=palette.c1,
                                          symbolSize=7)
 
-        self.ch4_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
+        self.ch4_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier,
                                          self._eproc_logic.eproc_plot_y[:, 3],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
@@ -193,6 +250,28 @@ class EPRoCGui(GUIBase):
         self._mw.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
         self._mw.ch4_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
 
+        # Add the display item to the xy and xz ViewWidget, which was defined in the UI file for the analysis.
+        """
+        self._sd.ch1_PlotWidget.addItem(self.ch1_image)
+        self._sd.ch1_PlotWidget.setLabel(axis='left', text='Ch 1')
+        self._sd.ch1_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._sd.ch1_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._sd.ch2_PlotWidget.addItem(self.ch2_image)
+        self._sd.ch2_PlotWidget.setLabel(axis='left', text='Ch 2')
+        self._sd.ch2_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._sd.ch2_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._sd.ch3_PlotWidget.addItem(self.ch3_image)
+        self._sd.ch3_PlotWidget.setLabel(axis='left', text='Ch 3')
+        self._sd.ch3_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._sd.ch3_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._sd.ch4_PlotWidget.addItem(self.ch4_image)
+        self._sd.ch4_PlotWidget.setLabel(axis='left', text='Ch 4')
+        self._sd.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._sd.ch4_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+        """
         ########################################################################
         #          Configuration of the various display Widgets                #
         ########################################################################
@@ -202,12 +281,18 @@ class EPRoCGui(GUIBase):
         self._mw.ms_start_DoubleSpinBox.setValue(self._eproc_logic.ms_start)
         self._mw.ms_stop_DoubleSpinBox.setValue(self._eproc_logic.ms_stop)
         self._mw.ms_step_DoubleSpinBox.setValue(self._eproc_logic.ms_step)
+        self._mw.ms_start_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_start))
+        self._mw.ms_step_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_step))
+        self._mw.ms_stop_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_stop))
 
         self._mw.fs_mw_frequency_DoubleSpinBox.setValue(self._eproc_logic.fs_mw_frequency)
         self._mw.fs_mw_power_DoubleSpinBox.setValue(self._eproc_logic.fs_mw_power)
         self._mw.fs_start_DoubleSpinBox.setValue(self._eproc_logic.fs_start)
         self._mw.fs_stop_DoubleSpinBox.setValue(self._eproc_logic.fs_stop)
         self._mw.fs_step_DoubleSpinBox.setValue(self._eproc_logic.fs_step)
+        # self._mw.fs_start_LineEdit.setText(self.field_to_mw(self._eproc_logic.fs_start))
+        # self._mw.fs_step_LineEdit.setText(self.field_to_mw(self._eproc_logic.fs_step))
+        # self._mw.fs_stop_LineEdit.setText(self.field_to_mw(self._eproc_logic.fs_stop))
 
         self._mw.lia_range_ComboBox.setCurrentText(self._eproc_logic.lia_range)
         self._mw.lia_uac_DoubleSpinBox.setValue(self._eproc_logic.lia_uac)
@@ -225,6 +310,8 @@ class EPRoCGui(GUIBase):
         self._mw.number_of_sweeps_SpinBox.setValue(self._eproc_logic.number_of_sweeps)
         self._mw.number_of_accumulations_SpinBox.setValue(self._eproc_logic.number_of_accumulations)
 
+        self._mw.frequency_multiplier_ComboBox.setCurrentText(str(self._eproc_logic.frequency_multiplier))
+
         self._mw.psb_voltage_outp1_DoubleSpinBox.setValue(self._eproc_logic.psb_voltage_outp1)
         self._mw.psb_voltage_outp2_DoubleSpinBox.setValue(self._eproc_logic.psb_voltage_outp2)
         self._mw.psb_current_max_outp1_DoubleSpinBox.setValue(self._eproc_logic.psb_current_max_outp1)
@@ -237,6 +324,8 @@ class EPRoCGui(GUIBase):
         self._mw.ref_shape_ComboBox.setCurrentText(self._eproc_logic.ref_shape)
         self._mw.ref_frequency_DoubleSpinBox.setValue(self._eproc_logic.ref_freq)
         self._mw.ref_deviation_DoubleSpinBox.setValue(self._eproc_logic.ref_deviation)
+        self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(self._eproc_logic.ref_deviation))
+        self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(self._eproc_logic.ref_deviation))
         self._mw.ref_mode_ComboBox.setCurrentText(self._eproc_logic.ref_mode)
 
         # to add: a remaining time display
@@ -246,7 +335,6 @@ class EPRoCGui(GUIBase):
         #                       Connect signals                                #
         ########################################################################
         # Internal user input changed signals
-
         self._mw.ms_field_DoubleSpinBox.editingFinished.connect(self.change_ms_params)
         self._mw.ms_mw_power_DoubleSpinBox.editingFinished.connect(self.change_ms_params)
         self._mw.ms_start_DoubleSpinBox.editingFinished.connect(self.change_ms_params)
@@ -275,11 +363,14 @@ class EPRoCGui(GUIBase):
         self._mw.ms_RadioButton.toggled.connect(self.on_off_sweep)
         self._mw.fs_RadioButton.toggled.connect(self.on_off_sweep)
         self._mw.ref_RadioButton.toggled.connect(self.on_off_reference)
+        # qui devo connetterlo a una anltra window
         self._mw.power_supply_board_RadioButton.toggled.connect(self.on_off_psb)
         self._mw.power_supply_amplifier_RadioButton.toggled.connect(self.on_off_psa)
 
         self._mw.number_of_sweeps_SpinBox.editingFinished.connect(self.change_scan_params)
         self._mw.number_of_accumulations_SpinBox.editingFinished.connect(self.change_scan_params)
+
+        self._mw.frequency_multiplier_ComboBox.currentTextChanged.connect(self.change_frequency_multiplier)
 
         self._mw.ref_shape_ComboBox.currentTextChanged.connect(self.change_ref_params)
         self._mw.ref_frequency_DoubleSpinBox.editingFinished.connect(self.change_ref_params)
@@ -298,11 +389,17 @@ class EPRoCGui(GUIBase):
         # Internal trigger signals
         self._mw.action_run_stop.triggered.connect(self.run_stop_scan)
         self._mw.action_stop_next_sweep.triggered.connect(self._eproc_logic.stop_eproc_next_sweep)
+        self._mw.action_toggle_cw.triggered.connect(self.toggle_cw)
+        self._mw.action_toggle_modulation.triggered.connect(self.toggle_modulation)
         self._mw.action_Save.triggered.connect(self.save_data)
 
         # Control/values-changed signals to logic
         self.sigStartEproc.connect(self._eproc_logic.start_eproc, QtCore.Qt.QueuedConnection)
         self.sigStopEproc.connect(self._eproc_logic.stop_eproc, QtCore.Qt.QueuedConnection)
+        self.sigToggleCwOn.connect(self._eproc_logic.mw_on, QtCore.Qt.QueuedConnection)
+        self.sigToggleCwOff.connect(self._eproc_logic.mw_off, QtCore.Qt.QueuedConnection)
+        self.sigToggleModulationOn.connect(self._eproc_logic.mw_on, QtCore.Qt.QueuedConnection)
+        self.sigToggleModulationOff.connect(self._eproc_logic.mw_off, QtCore.Qt.QueuedConnection)
         self.sigExtRefOn.connect(self._eproc_logic.lockin_ext_ref_on, QtCore.Qt.QueuedConnection)
         self.sigExtRefOff.connect(self._eproc_logic.lockin_ext_ref_off, QtCore.Qt.QueuedConnection)
         self.sigPowerSupplyBoardOn.connect(self._eproc_logic.psb_on, QtCore.Qt.QueuedConnection)
@@ -315,6 +412,7 @@ class EPRoCGui(GUIBase):
         self.sigLockinParamsChanged.connect(self._eproc_logic.set_lia_parameters, QtCore.Qt.QueuedConnection)
         self.sigRefParamsChanged.connect(self._eproc_logic.set_ref_parameters, QtCore.Qt.QueuedConnection)
         self.sigScanParamsChanged.connect(self._eproc_logic.set_eproc_scan_parameters, QtCore.Qt.QueuedConnection)
+        self.sigFrequencyMultiplierChanged.connect(self._eproc_logic.set_frequency_multiplier, QtCore.Qt.QueuedConnection)
         self.sigPowerSupplyBoardParamsChanged.connect(self._eproc_logic.set_psb_parameters, QtCore.Qt.QueuedConnection)
         self.sigPowerSupplyAmplifierParamsChanged.connect(self._eproc_logic.set_psa_parameters, QtCore.Qt.QueuedConnection)
 
@@ -331,24 +429,36 @@ class EPRoCGui(GUIBase):
                                                                QtCore.Qt.QueuedConnection)
 
         self._mw.action_stop_next_sweep.setEnabled(False)
-        # External reference is basically always used
         self._mw.ref_RadioButton.setChecked(True)
         self._mw.lia_frequency_DoubleSpinBox.setEnabled(False)
+
         if self._eproc_logic.is_microwave_sweep:
             self._mw.ms_RadioButton.setChecked(True)
-            self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_mw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_start_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_step_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_stop_DoubleSpinBox.setEnabled(False)
+            for widget_name in self._mw.__dict__.keys():
+                if widget_name.startswith('fs_'):
+                    widg = getattr(self._mw, widget_name)
+                    widg.setEnabled(False)
+            self._mw.fs_RadioButton.setEnabled(True)
         else:
             self._mw.fs_RadioButton.setChecked(True)
-            self._mw.ms_field_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_mw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_start_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_step_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_stop_DoubleSpinBox.setEnabled(False)
+            for widget_name in self._mw.__dict__.keys():
+                if widget_name.startswith('ms_'):
+                    widg = getattr(self._mw, widget_name)
+                    widg.setEnabled(False)
+            self._mw.ms_RadioButton.setEnabled(True)
 
+        # connect settings signals
+        self._mw.action_Analysis.triggered.connect(self._menu_settings)
+        #self._sd.accepted.connect(self.update_settings)
+        #self._sd.rejected.connect(self.reject_settings)
+        #self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(
+            #self.update_settings)
+        #self.reject_settings()
+
+        self._psondialog.accepted.connect(self.power_supply_on_accepted)
+        self._psondialog.rejected.connect(self.power_supply_on_rejected)
+        self._psoffdialog.accepted.connect(self.power_supply_off_accepted)
+        self._psoffdialog.rejected.connect(self.power_supply_off_rejected)
         # Show the Main EPRoC GUI:
         self.show()
 
@@ -358,6 +468,12 @@ class EPRoCGui(GUIBase):
         @return int: error code (0:OK, -1:error)
         """
         # Disconnect signals
+        self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.disconnect()
+        self._sd.accepted.disconnect()
+        self._sd.rejected.disconnect()
+        self._psondialog.accepted.disconnect()
+        self._psoffdialog.accepted.disconnect()
+
         self._eproc_logic.sigParameterUpdated.disconnect()
         self._eproc_logic.sigOutputStateUpdated.disconnect()
         self._eproc_logic.sigSetLabelEprocPlots.disconnect()
@@ -377,12 +493,17 @@ class EPRoCGui(GUIBase):
         self.sigLockinParamsChanged.disconnect()
         self.sigRefParamsChanged.disconnect()
         self.sigScanParamsChanged.disconnect()
+        self.sigFrequencyMultiplierChanged.disconnect()
         self.sigPowerSupplyBoardParamsChanged.disconnect()
         self.sigPowerSupplyAmplifierParamsChanged.disconnect()
         self.sigSaveMeasurement.disconnect()
 
+        self._mw.action_Analysis.triggered.disconnect()
+
         self._mw.action_run_stop.triggered.disconnect()
         self._mw.action_stop_next_sweep.triggered.disconnect()
+        self._mw.action_toggle_cw.triggered.disconnect()
+        self._mw.action_toggle_modulation.triggered.disconnect()
         self._mw.action_Save.triggered.disconnect()
 
         self._mw.ms_field_DoubleSpinBox.editingFinished.disconnect()
@@ -423,6 +544,8 @@ class EPRoCGui(GUIBase):
         self._mw.ref_frequency_DoubleSpinBox.editingFinished.disconnect()
         self._mw.ref_deviation_DoubleSpinBox.editingFinished.disconnect()
         self._mw.ref_mode_ComboBox.currentTextChanged.disconnect()
+
+        self._mw.frequency_multiplier_ComboBox.editingFinished.disconnect()
 
         self._mw.psb_voltage_outp1_DoubleSpinBox.editingFinished.disconnect()
         self._mw.psb_voltage_outp2_DoubleSpinBox.editingFinished.disconnect()
@@ -633,30 +756,6 @@ class EPRoCGui(GUIBase):
         return start, stop, step
     '''
 
-    def tau_float_to_str(self, tau):
-        if tau < 1:
-            tau *= 1000
-            if tau < 1:
-                tau = str(int(tau * 1000)) + ' us'
-            else:
-                tau = str(int(tau)) + ' ms'
-        elif tau < 1000:
-            tau = str(int(tau)) + ' s'
-        else:
-            tau = str(int(tau / 1000)) + ' ks'
-        return tau
-
-    def tau_str_to_float(self, tau):
-        num, unit = tau.split(' ')
-        tau = float(num)
-        if unit == 'us':
-            tau /= 1000000
-        elif unit == 'ms':
-            tau /= 1000
-        elif unit == 'ks':
-            tau *= 1000
-        return tau
-
     def set_label_eproc_plots(self, is_ms):
         if is_ms:
             x_label = 'Frequency'
@@ -670,19 +769,30 @@ class EPRoCGui(GUIBase):
         self._mw.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
         return
 
+    # all the procedure should be checked comparing with odmrgui: set enabled false and then enabled through update status? investigate!!
+    def toggle_cw(self, is_checked):
+        if is_checked:
+            self.sigToggleCwOn.emit()
+        else:
+            self.sigToggleCwOff.emit()
+        return
+
+    def toggle_modulation(self, is_checked):
+        if is_checked:
+            self.sigToggleModulationOn.emit()
+        else:
+            self.sigToggleModulationOff.emit()
+        return
+
     def run_stop_scan(self, is_checked):
         """ Manages what happens if eproc scan is started/stopped. """
         # Update measurement status (activate/deactivate widgets/actions)
         if is_checked:
-            self._mw.action_stop_next_sweep.setEnabled(True)
-            # Set every Box and Button in the gui as not enabled
-            for widget_name in self._mw.__dict__.keys():
-                if widget_name.endswith('Box') or widget_name.endswith('Button'):
-                    widg = getattr(self._mw, widget_name)
-                    widg.setEnabled(False)
+            self.update_status(True)
             self.sigStartEproc.emit()
         else:
             self.sigStopEproc.emit()
+            self.update_status(False)
         return
 
     def update_status(self, is_running):
@@ -695,29 +805,44 @@ class EPRoCGui(GUIBase):
         # Block signals from firing
         self._mw.action_run_stop.blockSignals(True)
         self._mw.action_stop_next_sweep.blockSignals(True)
+        self._mw.action_toggle_cw.blockSignals(True) # are these two necessary?
+        self._mw.action_toggle_modulation.blockSignals(True)
 
-        if not is_running:
-            self._mw.action_run_stop.setChecked(False)
+        if is_running:
+            self._mw.action_run_stop.setChecked(True)
             self._mw.action_stop_next_sweep.setChecked(False)
-            self._mw.action_stop_next_sweep.setEnabled(False)
+            self._mw.action_stop_next_sweep.setEnabled(True) # is this necessary?
+            self._mw.action_toggle_cw.setEnabled(False)
+            self._mw.action_toggle_modulation.setEnabled(False)
             # Set enabled every Box and Button in the gui
             for widget_name in self._mw.__dict__.keys():
-                if widget_name.endswith('Box') or widget_name.endswith('Button'):
+                if widget_name.endswith('Box') or widget_name.endswith('Button') or widget_name.endswith('Edit'):
+                    widg = getattr(self._mw, widget_name)
+                    widg.setEnabled(False)
+        else:
+            self._mw.action_run_stop.setChecked(False)
+            self._mw.action_stop_next_sweep.setChecked(False)
+            self._mw.action_stop_next_sweep.setEnabled(False) # is this necessary?
+            self._mw.action_toggle_cw.setEnabled(True)
+            self._mw.action_toggle_modulation.setEnabled(True)
+            # Set enabled every Box and Button in the gui
+            for widget_name in self._mw.__dict__.keys():
+                if widget_name.endswith('Box') or widget_name.endswith('Button') or widget_name.endswith('Edit'):
                     widg = getattr(self._mw, widget_name)
                     widg.setEnabled(True)
             # Set disabled Boxes depending on which RadioButton is checked
             if self._mw.ms_RadioButton.isChecked():
-                self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(False)
-                self._mw.fs_mw_power_DoubleSpinBox.setEnabled(False)
-                self._mw.fs_start_DoubleSpinBox.setEnabled(False)
-                self._mw.fs_step_DoubleSpinBox.setEnabled(False)
-                self._mw.fs_stop_DoubleSpinBox.setEnabled(False)
+                for widget_name in self._mw.__dict__.keys():
+                    if widget_name.startswith('fs_'):
+                        widg = getattr(self._mw, widget_name)
+                        widg.setEnabled(False)
+                self._mw.fs_RadioButton.setEnabled(True)
             else:
-                self._mw.ms_field_DoubleSpinBox.setEnabled(False)
-                self._mw.ms_mw_power_DoubleSpinBox.setEnabled(False)
-                self._mw.ms_start_DoubleSpinBox.setEnabled(False)
-                self._mw.ms_step_DoubleSpinBox.setEnabled(False)
-                self._mw.ms_stop_DoubleSpinBox.setEnabled(False)
+                for widget_name in self._mw.__dict__.keys():
+                    if widget_name.startswith('ms_'):
+                        widg = getattr(self._mw, widget_name)
+                        widg.setEnabled(False)
+                self._mw.ms_RadioButton.setEnabled(True)
             if self._mw.ref_RadioButton.isChecked():
                 self._mw.lia_frequency_DoubleSpinBox.setEnabled(False)
             else:
@@ -729,6 +854,8 @@ class EPRoCGui(GUIBase):
         # Unblock signal firing
         self._mw.action_run_stop.blockSignals(False)
         self._mw.action_stop_next_sweep.blockSignals(False)
+        self._mw.action_toggle_cw.blockSignals(False)
+        self._mw.action_toggle_modulation.blockSignals(False)
         return
 
     def update_plots(self, eproc_data_x, eproc_data_y):
@@ -768,18 +895,21 @@ class EPRoCGui(GUIBase):
             self._mw.ms_start_DoubleSpinBox.blockSignals(True)
             self._mw.ms_start_DoubleSpinBox.setValue(param)
             self._mw.ms_start_DoubleSpinBox.blockSignals(False)
+            self._mw.ms_start_LineEdit.setText(self.mw_to_field(param))
 
         param = param_dict.get('ms_step')
         if param is not None:
             self._mw.ms_step_DoubleSpinBox.blockSignals(True)
             self._mw.ms_step_DoubleSpinBox.setValue(param)
             self._mw.ms_step_DoubleSpinBox.blockSignals(False)
+            self._mw.ms_step_LineEdit.setText(self.mw_to_field(param))
 
         param = param_dict.get('ms_stop')
         if param is not None:
             self._mw.ms_stop_DoubleSpinBox.blockSignals(True)
             self._mw.ms_stop_DoubleSpinBox.setValue(param)
             self._mw.ms_stop_DoubleSpinBox.blockSignals(False)
+            self._mw.ms_stop_LineEdit.setText(self.mw_to_field(param))
 
         # Field sweep parameters Dock widget
         param = param_dict.get('fs_mw_frequency')
@@ -799,18 +929,21 @@ class EPRoCGui(GUIBase):
             self._mw.fs_start_DoubleSpinBox.blockSignals(True)
             self._mw.fs_start_DoubleSpinBox.setValue(param)
             self._mw.fs_start_DoubleSpinBox.blockSignals(False)
+            # self._mw.fs_start_LineEdit.setText(self.field_to_mw(param))
 
         param = param_dict.get('fs_step')
         if param is not None:
             self._mw.fs_step_DoubleSpinBox.blockSignals(True)
             self._mw.fs_step_DoubleSpinBox.setValue(param)
             self._mw.fs_step_DoubleSpinBox.blockSignals(False)
+            # self._mw.fs_step_LineEdit.setText(self.field_to_mw(param))
 
         param = param_dict.get('fs_stop')
         if param is not None:
             self._mw.fs_stop_DoubleSpinBox.blockSignals(True)
             self._mw.fs_stop_DoubleSpinBox.setValue(param)
             self._mw.fs_stop_DoubleSpinBox.blockSignals(False)
+            # self._mw.fs_stop_LineEdit.setText(self.field_to_mw(param))
 
         # Lockin parameters Dock widget
         param = param_dict.get('lia_range')
@@ -903,6 +1036,8 @@ class EPRoCGui(GUIBase):
             self._mw.ref_deviation_DoubleSpinBox.blockSignals(True)
             self._mw.ref_deviation_DoubleSpinBox.setValue(param)
             self._mw.ref_deviation_DoubleSpinBox.blockSignals(False)
+            self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(param))
+            self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(param))
 
         param = param_dict.get('fm_mode')
         if param is not None:
@@ -921,6 +1056,17 @@ class EPRoCGui(GUIBase):
             self._mw.number_of_accumulations_SpinBox.blockSignals(True)
             self._mw.number_of_accumulations_SpinBox.setValue(param)
             self._mw.number_of_accumulations_SpinBox.blockSignals(False)
+
+        param = param_dict.get('frequency_multiplier')
+        if param is not None:
+            self._mw.frequency_multiplier_ComboBox.blockSignals(True)
+            self._mw.frequency_multiplier_ComboBox.setCurrentText(str(param))
+            self._mw.frequency_multiplier_ComboBox.blockSignals(False)
+            self._mw.ms_start_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_start))
+            self._mw.ms_step_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_step))
+            self._mw.ms_stop_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_stop))
+            self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(self._eproc_logic.ref_deviation))
+            self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(self._eproc_logic.ref_deviation))
 
         param = param_dict.get('psb_voltage_outp1')
         if param is not None:
@@ -1017,11 +1163,17 @@ class EPRoCGui(GUIBase):
             self._mw.ms_start_DoubleSpinBox.setEnabled(True)
             self._mw.ms_step_DoubleSpinBox.setEnabled(True)
             self._mw.ms_stop_DoubleSpinBox.setEnabled(True)
+            self._mw.ms_start_LineEdit.setEnabled(True)
+            self._mw.ms_step_LineEdit.setEnabled(True)
+            self._mw.ms_stop_LineEdit.setEnabled(True)
             self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.fs_mw_power_DoubleSpinBox.setEnabled(False)
             self._mw.fs_start_DoubleSpinBox.setEnabled(False)
             self._mw.fs_step_DoubleSpinBox.setEnabled(False)
             self._mw.fs_stop_DoubleSpinBox.setEnabled(False)
+            # self._mw.fs_start_LineEdit.setEnabled(False)
+            # self._mw.fs_step_LineEdit.setEnabled(False)
+            # self._mw.fs_stop_LineEdit.setEnabled(False)
             self.change_ms_params()
         else:
             self._eproc_logic.is_microwave_sweep = False
@@ -1030,11 +1182,17 @@ class EPRoCGui(GUIBase):
             self._mw.fs_start_DoubleSpinBox.setEnabled(True)
             self._mw.fs_step_DoubleSpinBox.setEnabled(True)
             self._mw.fs_stop_DoubleSpinBox.setEnabled(True)
+            # self._mw.fs_start_LineEdit.setEnabled(True)
+            # self._mw.fs_step_LineEdit.setEnabled(True)
+            # self._mw.fs_stop_LineEdit.setEnabled(True)
             self._mw.ms_field_DoubleSpinBox.setEnabled(False)
             self._mw.ms_mw_power_DoubleSpinBox.setEnabled(False)
             self._mw.ms_start_DoubleSpinBox.setEnabled(False)
             self._mw.ms_step_DoubleSpinBox.setEnabled(False)
             self._mw.ms_stop_DoubleSpinBox.setEnabled(False)
+            self._mw.ms_start_LineEdit.setEnabled(False)
+            self._mw.ms_step_LineEdit.setEnabled(False)
+            self._mw.ms_stop_LineEdit.setEnabled(False)
             self.change_fs_params()
         return
 
@@ -1071,19 +1229,82 @@ class EPRoCGui(GUIBase):
         self.sigScanParamsChanged.emit(number_of_sweeps, number_of_accumulations)
         return
 
+    def change_frequency_multiplier(self):
+        multiplier = int(self._mw.frequency_multiplier_ComboBox.currentText())
+        self.sigFrequencyMultiplierChanged.emit(multiplier)
+        return
+
     def on_off_psb(self, is_checked):
         if is_checked:
+            self._psondialog.power_supply_Label.setText(
+                'The power supply for the board is set with the following values:'
+            )
+            self._psondialog.v1_LineEdit.setText(
+                str(self._mw.psb_voltage_outp1_DoubleSpinBox.value()) + ' V')
+            self._psondialog.v2_LineEdit.setText(
+                str(self._mw.psb_voltage_outp2_DoubleSpinBox.value()) + ' V')
+            self._psondialog.maxi1_LineEdit.setText(
+                str(self._mw.psb_current_max_outp1_DoubleSpinBox.value()) + ' I')
+            self._psondialog.maxi2_LineEdit.setText(
+                str(self._mw.psb_current_max_outp2_DoubleSpinBox.value()) + ' I')
+            self._psondialog.show()
+        else:
+            self._psoffdialog.power_supply_Label.setText(
+                'The power supply of the board will be turned off.'
+            )
+            self._psoffdialog.show()
+        return
+
+    def power_supply_on_accepted(self):
+        if 'board' in self._psondialog.power_supply_Label.text():
             self._mw.psb_voltage_outp1_DoubleSpinBox.setEnabled(False)
             self._mw.psb_voltage_outp2_DoubleSpinBox.setEnabled(False)
             self._mw.psb_current_max_outp1_DoubleSpinBox.setEnabled(False)
             self._mw.psb_current_max_outp2_DoubleSpinBox.setEnabled(False)
             self.sigPowerSupplyBoardOn.emit()
         else:
+            self._mw.psa_voltage_outp1_DoubleSpinBox.setEnabled(False)
+            self._mw.psa_voltage_outp2_DoubleSpinBox.setEnabled(False)
+            self._mw.psa_current_max_outp1_DoubleSpinBox.setEnabled(False)
+            self._mw.psa_current_max_outp2_DoubleSpinBox.setEnabled(False)
+            self.sigPowerSupplyAmplifierOn.emit()
+        return
+
+    def power_supply_on_rejected(self):
+        if 'board' in self._psondialog.power_supply_Label.text():
+            self._mw.power_supply_board_RadioButton.blockSignals(True)
+            self._mw.power_supply_board_RadioButton.setChecked(False)
+            self._mw.power_supply_board_RadioButton.blockSignals(False)
+        else:
+            self._mw.power_supply_amplifier_RadioButton.blockSignals(True)
+            self._mw.power_supply_amplifier_RadioButton.setChecked(False)
+            self._mw.power_supply_amplifier_RadioButton.blockSignals(False)
+        return
+
+    def power_supply_off_accepted(self):
+        if 'board' in self._psoffdialog.power_supply_Label.text():
             self._mw.psb_voltage_outp1_DoubleSpinBox.setEnabled(True)
             self._mw.psb_voltage_outp2_DoubleSpinBox.setEnabled(True)
             self._mw.psb_current_max_outp1_DoubleSpinBox.setEnabled(True)
             self._mw.psb_current_max_outp2_DoubleSpinBox.setEnabled(True)
             self.sigPowerSupplyBoardOff.emit()
+        else:
+            self._mw.psa_voltage_outp1_DoubleSpinBox.setEnabled(True)
+            self._mw.psa_voltage_outp2_DoubleSpinBox.setEnabled(True)
+            self._mw.psa_current_max_outp1_DoubleSpinBox.setEnabled(True)
+            self._mw.psa_current_max_outp2_DoubleSpinBox.setEnabled(True)
+            self.sigPowerSupplyAmplifierOff.emit()
+        return
+
+    def power_supply_off_rejected(self):
+        if 'board' in self._psondialog.power_supply_Label.text():
+            self._mw.power_supply_board_RadioButton.blockSignals(True)
+            self._mw.power_supply_board_RadioButton.setChecked(True)
+            self._mw.power_supply_board_RadioButton.blockSignals(False)
+        else:
+            self._mw.power_supply_amplifier_RadioButton.blockSignals(True)
+            self._mw.power_supply_amplifier_RadioButton.setChecked(True)
+            self._mw.power_supply_amplifier_RadioButton.blockSignals(False)
         return
 
     def change_psb_params(self):
@@ -1096,17 +1317,23 @@ class EPRoCGui(GUIBase):
 
     def on_off_psa(self, is_checked):
         if is_checked:
-            self._mw.psa_voltage_outp1_DoubleSpinBox.setEnabled(False)
-            self._mw.psa_voltage_outp2_DoubleSpinBox.setEnabled(False)
-            self._mw.psa_current_max_outp1_DoubleSpinBox.setEnabled(False)
-            self._mw.psa_current_max_outp2_DoubleSpinBox.setEnabled(False)
-            self.sigPowerSupplyAmplifierOn.emit()
+            self._psondialog.power_supply_Label.setText(
+                'The power supply for the amplifier is set with the following values:'
+            )
+            self._psondialog.v1_LineEdit.setText(
+                str(self._mw.psa_voltage_outp1_DoubleSpinBox.value()) + ' V')
+            self._psondialog.v2_LineEdit.setText(
+                str(self._mw.psa_voltage_outp2_DoubleSpinBox.value()) + ' V')
+            self._psondialog.maxi1_LineEdit.setText(
+                str(self._mw.psa_current_max_outp1_DoubleSpinBox.value()) + ' I')
+            self._psondialog.maxi2_LineEdit.setText(
+                str(self._mw.psa_current_max_outp2_DoubleSpinBox.value()) + ' I')
+            self._psondialog.show()
         else:
-            self._mw.psa_voltage_outp1_DoubleSpinBox.setEnabled(True)
-            self._mw.psa_voltage_outp2_DoubleSpinBox.setEnabled(True)
-            self._mw.psa_current_max_outp1_DoubleSpinBox.setEnabled(True)
-            self._mw.psa_current_max_outp2_DoubleSpinBox.setEnabled(True)
-            self.sigPowerSupplyAmplifierOff.emit()
+            self._psoffdialog.power_supply_Label.setText(
+                'The power supply of the amplifier will be turned off.'
+            )
+            self._psoffdialog.show()
         return
 
     def change_psa_params(self):
@@ -1128,3 +1355,78 @@ class EPRoCGui(GUIBase):
         filetag = self._mw.save_tag_LineEdit.text()
         self.sigSaveMeasurement.emit(filetag)
         return
+
+    def _menu_settings(self):
+        """ Open the settings menu """
+        self._sd.show()
+
+    def update_settings(self):
+        """ Write the new settings from the gui to the file. """
+        number_of_lines = self._sd.matrix_lines_SpinBox.value()
+        clock_frequency = self._sd.clock_frequency_DoubleSpinBox.value()
+        oversampling = self._sd.oversampling_SpinBox.value()
+        lock_in = self._sd.lock_in_CheckBox.isChecked()
+        self.sigOversamplingChanged.emit(oversampling)
+        self.sigLockInChanged.emit(lock_in)
+        self.sigClockFreqChanged.emit(clock_frequency)
+        self.sigNumberOfLinesChanged.emit(number_of_lines)
+        return
+
+    def getLoadFile(self):
+        """ Ask the user for a file where the configuration should be loaded
+            from
+        """
+        defaultconfigpath = os.path.join(get_main_dir(), 'config')
+        filename = QtWidgets.QFileDialog.getOpenFileName(
+            self._sd,
+            'Load Configration',
+            defaultconfigpath,
+            'Configuration files (*.cfg)')[0]
+        if filename != '':
+            reply = QtWidgets.QMessageBox.question(
+                self._sd,
+                'Restart',
+                'Do you want to restart to use the configuration?',
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No
+            )
+            restart = (reply == QtWidgets.QMessageBox.Yes)
+            self.sigLoadConfig.emit(filename, restart)
+
+    # these two shouldnt be in the gui file probably :|
+    def tau_float_to_str(self, tau):
+        if tau < 1:
+            tau *= 1000
+            if tau < 1:
+                tau = str(int(tau * 1000)) + ' us'
+            else:
+                tau = str(int(tau)) + ' ms'
+        elif tau < 1000:
+            tau = str(int(tau)) + ' s'
+        else:
+            tau = str(int(tau / 1000)) + ' ks'
+        return tau
+
+    def tau_str_to_float(self, tau):
+        num, unit = tau.split(' ')
+        tau = float(num)
+        if unit == 'us':
+            tau /= 1000000
+        elif unit == 'ms':
+            tau /= 1000
+        elif unit == 'ks':
+            tau *= 1000
+        return tau
+
+    def field_to_mw(self, field):
+        return str(round(field * 2.8, 2)) + ' MHz'
+
+    def multiplied_mw(self, freq):
+        # return str(round(freq * self._eproc_logic.frequency_multiplier / 1000000, 2)) + ' MHz'
+        return str(freq * self._eproc_logic.frequency_multiplier / 1000000) + ' MHz'
+
+    def mw_to_field(self, freq):
+        return str(round(freq * self._eproc_logic.frequency_multiplier * 1e-6 / 2.8, 2)) + ' G'
+
+
+

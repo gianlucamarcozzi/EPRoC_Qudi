@@ -38,7 +38,7 @@ from logic.generic_logic import GenericLogic
 from matplotlib.backends.backend_pdf import PdfPages
 from PIL import Image
 from PIL import PngImagePlugin
-
+import subprocess
 
 class DailyLogHandler(logging.FileHandler):
     """
@@ -413,6 +413,9 @@ class SaveLogic(GenericLogic):
         # determine proper unique filename to save if none has been passed
         if filename is None:
             filename = timestamp.strftime('%Y%m%d-%H%M-%S' + '_' + filelabel + '.dat')
+        if os.path.isfile(os.path.join(filepath, filename)):
+            subprocess.Popen(f'explorer {filepath}')
+            self.log.warning('same name as an already existing file')
 
         # Check format specifier.
         if not isinstance(fmt, str) and len(fmt) != len(data):
