@@ -26,6 +26,7 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
         self._timeout = self._timeout * 1000
+        # trying to load the visa connection to the module
         self.rm = visa.ResourceManager()
         try:
             self._connection = self.rm.open_resource(self._address,
@@ -34,7 +35,10 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
             self.log.error('Could not connect to the address >>{}<<.'.format(self._address))
             raise
 
+        # self.model = self._connection.query('*IDN?').split(',')[1]
         self.log.info('Magnet initialised and connected.')
+        # self._command_wait('*CLS')
+        # self._command_wait('*RST')
         return
 
     def on_deactivate(self):
@@ -58,21 +62,19 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
         return 0
 
     def set_central_field(self, field=None):
-        field = round(field, 2)
+        print('CF{}'.format(field))
         self._connection.write('CF{}'.format(field))
-        time.sleep(0.05)  # is this enough?
-
-        # while led_status == 1:
-        #     time.sleep(0.01)
-        #     led_status = self._connection.query('LE')
+        time.sleep(1)
         return field
 
     def set_sweep(self, cf=None, width=None, wait_time=None):
         self._connection.write('CF{}'.format(cf))
         time.sleep(1)
         field = self._connection.write('FC')
+        print(field)
         self._connection.write('SW{}'.format(width))
         self._connection.write('TM{}'.format(wait_time))
         time.sleep(1)
         field = self._connection.write('FC')
+        print(field)
         return cf, width, wait_time

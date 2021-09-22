@@ -468,7 +468,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
         is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
         if is_fm_running or is_lfo_running:
-            self.fm_off()
+            self.reference_off()
 
         # Set the shape of the modulation
         if shape is not None:

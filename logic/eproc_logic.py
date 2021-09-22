@@ -209,7 +209,10 @@ class EPRoCLogic(GenericLogic):
             self.eproc_plot_x = np.array(np.arange(self.fs_start, self.fs_stop + self.fs_step, self.fs_step))
         self.eproc_plot_y = np.zeros([self.eproc_plot_x.size, 4]) # writing it for 4 channels, but this should become a method get_lockin_channels of some sort
 
-        self.sigEprocPlotsUpdated.emit(self.eproc_plot_x * self.frequency_multiplier, self.eproc_plot_y)
+        if self.is_microwave_sweep:
+            self.sigEprocPlotsUpdated.emit(self.eproc_plot_x * self.frequency_multiplier, self.eproc_plot_y)
+        else:
+            self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
         self.sigSetLabelEprocPlots.emit(self.is_microwave_sweep)
         return
 
