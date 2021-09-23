@@ -61,7 +61,8 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
         field = round(field, 2)
         self._connection.write('CF{}'.format(field))
         time.sleep(0.05)  # is this enough?
-
+        # self._connection.write('LE')
+        # led_status = self._connection.read()
         # while led_status == 1:
         #     time.sleep(0.01)
         #     led_status = self._connection.query('LE')

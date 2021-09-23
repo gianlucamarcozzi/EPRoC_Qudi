@@ -414,6 +414,8 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         return 0
     '''
     def reference_on(self):
+        # Both the frequency modulation and the lf output need to be activated, in order to have and output signal which
+        # is modulated.
         # How can I understand in a smart way if what is to be set is the channel FM1 or FM2?
         # Is current_mode needed at all? can it be eliminated (e.g. dummy instead of current_mode)?
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
@@ -427,8 +429,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
             time.sleep(0.2)
             is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
             is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
-
-        return 0
+        return is_fm_running, is_lfo_running
 
     def reference_off(self):
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
@@ -442,8 +443,12 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
             time.sleep(0.2)
             is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
             is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
+        return is_fm_running, is_lfo_running
 
-        return 0
+    def get_reference_status(self):
+        is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
+        is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
+        return is_fm_running, is_lfo_running
 
     def set_reference(self, shape = None, freq = None, mode=None, dev=None):
         '''
@@ -464,11 +469,6 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         #                                                                                   the end in any case
         # If fm is on: turn it off, set new params, leave if off
         # If fm is off: set new params, leave it off
-
-        is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
-        if is_fm_running or is_lfo_running:
-            self.reference_off()
 
         # Set the shape of the modulation
         if shape is not None:

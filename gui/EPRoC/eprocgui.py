@@ -190,7 +190,12 @@ class EPRoCGui(GUIBase):
         self._mw.toolBar.addWidget(self._mw.clear_odmr_PushButton)
         '''
 
-        self.ch1_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier,
+        if self._eproc_logic.is_microwave_sweep:
+            plot_x = self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier
+        else:
+            plot_x = self._eproc_logic.eproc_plot_x
+
+        self.ch1_image = pg.PlotDataItem(plot_x,
                                          self._eproc_logic.eproc_plot_y[:, 0],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
@@ -198,7 +203,7 @@ class EPRoCGui(GUIBase):
                                          symbolBrush=palette.c1,
                                          symbolSize=7)
 
-        self.ch2_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier,
+        self.ch2_image = pg.PlotDataItem(plot_x,
                                          self._eproc_logic.eproc_plot_y[:, 1],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
@@ -206,7 +211,7 @@ class EPRoCGui(GUIBase):
                                          symbolBrush=palette.c1,
                                          symbolSize=7)
 
-        self.ch3_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier,
+        self.ch3_image = pg.PlotDataItem(plot_x,
                                          self._eproc_logic.eproc_plot_y[:, 2],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
@@ -214,7 +219,7 @@ class EPRoCGui(GUIBase):
                                          symbolBrush=palette.c1,
                                          symbolSize=7)
 
-        self.ch4_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier,
+        self.ch4_image = pg.PlotDataItem(plot_x,
                                          self._eproc_logic.eproc_plot_y[:, 3],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
@@ -286,6 +291,7 @@ class EPRoCGui(GUIBase):
         self._mw.ms_stop_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_stop))
 
         self._mw.fs_mw_frequency_DoubleSpinBox.setValue(self._eproc_logic.fs_mw_frequency)
+        self._mw.fs_mw_frequency_LineEdit.setText(self.multiplied_mw(self._eproc_logic.fs_mw_frequency))
         self._mw.fs_mw_power_DoubleSpinBox.setValue(self._eproc_logic.fs_mw_power)
         self._mw.fs_start_DoubleSpinBox.setValue(self._eproc_logic.fs_start)
         self._mw.fs_stop_DoubleSpinBox.setValue(self._eproc_logic.fs_stop)
@@ -324,8 +330,8 @@ class EPRoCGui(GUIBase):
         self._mw.ref_shape_ComboBox.setCurrentText(self._eproc_logic.ref_shape)
         self._mw.ref_frequency_DoubleSpinBox.setValue(self._eproc_logic.ref_freq)
         self._mw.ref_deviation_DoubleSpinBox.setValue(self._eproc_logic.ref_deviation)
-        self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(self._eproc_logic.ref_deviation))
-        self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(self._eproc_logic.ref_deviation))
+        self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(2*self._eproc_logic.ref_deviation)) # factor 2 to have pp
+        self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(2*self._eproc_logic.ref_deviation))
         self._mw.ref_mode_ComboBox.setCurrentText(self._eproc_logic.ref_mode)
 
         # to add: a remaining time display
@@ -917,6 +923,7 @@ class EPRoCGui(GUIBase):
             self._mw.fs_mw_frequency_DoubleSpinBox.blockSignals(True)
             self._mw.fs_mw_frequency_DoubleSpinBox.setValue(param)
             self._mw.fs_mw_frequency_DoubleSpinBox.blockSignals(False)
+            self._mw.fs_mw_frequency_LineEdit.setText(self.multiplied_mw(param))
 
         param = param_dict.get('fs_mw_power')
         if param is not None:
@@ -1036,8 +1043,8 @@ class EPRoCGui(GUIBase):
             self._mw.ref_deviation_DoubleSpinBox.blockSignals(True)
             self._mw.ref_deviation_DoubleSpinBox.setValue(param)
             self._mw.ref_deviation_DoubleSpinBox.blockSignals(False)
-            self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(param))
-            self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(param))
+            self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(2*param)) # factor 2 to have pp
+            self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(2*param))
 
         param = param_dict.get('fm_mode')
         if param is not None:
@@ -1065,8 +1072,9 @@ class EPRoCGui(GUIBase):
             self._mw.ms_start_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_start))
             self._mw.ms_step_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_step))
             self._mw.ms_stop_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_stop))
-            self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(self._eproc_logic.ref_deviation))
-            self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(self._eproc_logic.ref_deviation))
+            self._mw.fs_mw_frequency_LineEdit.setText(self.multiplied_mw(self._eproc_logic.fs_mw_frequency))
+            self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(2*self._eproc_logic.ref_deviation)) # factor 2 to have pp
+            self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(2*self._eproc_logic.ref_deviation))
 
         param = param_dict.get('psb_voltage_outp1')
         if param is not None:
@@ -1167,6 +1175,7 @@ class EPRoCGui(GUIBase):
             self._mw.ms_step_LineEdit.setEnabled(True)
             self._mw.ms_stop_LineEdit.setEnabled(True)
             self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(False)
+            self._mw.fs_mw_frequency_LineEdit.setEnabled(False)
             self._mw.fs_mw_power_DoubleSpinBox.setEnabled(False)
             self._mw.fs_start_DoubleSpinBox.setEnabled(False)
             self._mw.fs_step_DoubleSpinBox.setEnabled(False)
@@ -1178,6 +1187,7 @@ class EPRoCGui(GUIBase):
         else:
             self._eproc_logic.is_microwave_sweep = False
             self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(True)
+            self._mw.fs_mw_frequency_LineEdit.setEnabled(True)
             self._mw.fs_mw_power_DoubleSpinBox.setEnabled(True)
             self._mw.fs_start_DoubleSpinBox.setEnabled(True)
             self._mw.fs_step_DoubleSpinBox.setEnabled(True)

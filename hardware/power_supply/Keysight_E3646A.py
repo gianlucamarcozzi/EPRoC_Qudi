@@ -38,7 +38,7 @@ class E3646A(Base, ProcessControlInterface):
 
     _voltage_min = ConfigOption('voltage_min', 0)
     _low_voltage_max = ConfigOption('low_voltage_max', 8)
-    _high_voltage_max = ConfigOption('high_voltage_max', 8)
+    _high_voltage_max = ConfigOption('high_voltage_max', 20)
     _current_max = ConfigOption('current_max', 1.5)
 
     _inst = None
