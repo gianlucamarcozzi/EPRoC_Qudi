@@ -22,7 +22,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 import numpy as np
 import os
 import pyqtgraph as pg
-
+from core.util.modules import get_main_dir
 from core.connector import Connector
 from core.util import units
 from gui.guibase import GUIBase
@@ -52,6 +52,34 @@ class EPRoCMainWindow(QtWidgets.QMainWindow):
         uic.loadUi(ui_file, self)
         self.show()
 
+class EPRoCAnalysis(QtWidgets.QMainWindow):
+    """ The settings dialog for ODMR measurements.
+    """
+
+    def __init__(self):
+        # Get the path to the *.ui file
+        this_dir = os.path.dirname(__file__)
+        ui_file = os.path.join(this_dir, 'ui_eproc_analysis.ui')
+
+        # Load it
+        super(EPRoCAnalysis, self).__init__()
+        uic.loadUi(ui_file, self)
+
+class EPRoCMotorizedStages(QtWidgets.QMainWindow):
+    """ The settings dialog for Motorized Stages.
+    """
+
+    def __init__(self):
+        # Get the path to the *.ui file
+        this_dir = os.path.dirname(__file__)
+        ui_file = os.path.join(this_dir, 'ui_eproc_motorized_stages.ui')
+
+        # Load it
+        super(EPRoCMotorizedStages, self).__init__()
+        uic.loadUi(ui_file, self)
+
+
+
 class EPRoCGui(GUIBase):
     """
     This is the GUI Class for EPRoC measurements
@@ -63,6 +91,10 @@ class EPRoCGui(GUIBase):
 
     sigStartEproc = QtCore.Signal()
     sigStopEproc = QtCore.Signal()
+    sigToggleCwOn = QtCore.Signal()
+    sigToggleCwOff = QtCore.Signal()
+    sigToggleModulationOn = QtCore.Signal()
+    sigToggleModulationOff = QtCore.Signal()
     sigExtRefOn = QtCore.Signal()
     sigExtRefOff = QtCore.Signal()
     sigPowerSupplyBoardOn = QtCore.Signal()
@@ -94,6 +126,8 @@ class EPRoCGui(GUIBase):
 
         # Use the inherited class 'Ui_EPRoCGuiUI' to create now the GUI element:
         self._mw = EPRoCMainWindow()
+        self._sd = EPRoCAnalysis()
+        self._KDC101 = EPRoCMotorizedStages()
 
         # Create a QSettings object for the mainwindow and store the actual GUI layout
         self.mwsettings = QtCore.QSettings("QUDI", "ODMR")
@@ -193,6 +227,28 @@ class EPRoCGui(GUIBase):
         self._mw.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
         self._mw.ch4_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
 
+        # Add the display item to the xy and xz ViewWidget, which was defined in the UI file for the analysis.
+
+        self._sd.ch1_PlotWidget.addItem(self.ch1_image)
+        self._sd.ch1_PlotWidget.setLabel(axis='left', text='Ch 1')
+        self._sd.ch1_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._sd.ch1_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._sd.ch2_PlotWidget.addItem(self.ch2_image)
+        self._sd.ch2_PlotWidget.setLabel(axis='left', text='Ch 2')
+        self._sd.ch2_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._sd.ch2_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._sd.ch3_PlotWidget.addItem(self.ch3_image)
+        self._sd.ch3_PlotWidget.setLabel(axis='left', text='Ch 3')
+        self._sd.ch3_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._sd.ch3_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._sd.ch4_PlotWidget.addItem(self.ch4_image)
+        self._sd.ch4_PlotWidget.setLabel(axis='left', text='Ch 4')
+        self._sd.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._sd.ch4_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
         ########################################################################
         #          Configuration of the various display Widgets                #
         ########################################################################
@@ -202,12 +258,18 @@ class EPRoCGui(GUIBase):
         self._mw.ms_start_DoubleSpinBox.setValue(self._eproc_logic.ms_start)
         self._mw.ms_stop_DoubleSpinBox.setValue(self._eproc_logic.ms_stop)
         self._mw.ms_step_DoubleSpinBox.setValue(self._eproc_logic.ms_step)
+        self._mw.ms_start_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_start))
+        self._mw.ms_step_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_step))
+        self._mw.ms_stop_LineEdit.setText(self.mw_to_field(self._eproc_logic.ms_stop))
 
         self._mw.fs_mw_frequency_DoubleSpinBox.setValue(self._eproc_logic.fs_mw_frequency)
         self._mw.fs_mw_power_DoubleSpinBox.setValue(self._eproc_logic.fs_mw_power)
         self._mw.fs_start_DoubleSpinBox.setValue(self._eproc_logic.fs_start)
         self._mw.fs_stop_DoubleSpinBox.setValue(self._eproc_logic.fs_stop)
         self._mw.fs_step_DoubleSpinBox.setValue(self._eproc_logic.fs_step)
+        self._mw.fs_start_LineEdit.setText(self.field_to_mw(self._eproc_logic.fs_start))
+        self._mw.fs_step_LineEdit.setText(self.field_to_mw(self._eproc_logic.fs_step))
+        self._mw.fs_stop_LineEdit.setText(self.field_to_mw(self._eproc_logic.fs_stop))
 
         self._mw.lia_range_ComboBox.setCurrentText(self._eproc_logic.lia_range)
         self._mw.lia_uac_DoubleSpinBox.setValue(self._eproc_logic.lia_uac)
@@ -237,6 +299,7 @@ class EPRoCGui(GUIBase):
         self._mw.ref_shape_ComboBox.setCurrentText(self._eproc_logic.ref_shape)
         self._mw.ref_frequency_DoubleSpinBox.setValue(self._eproc_logic.ref_freq)
         self._mw.ref_deviation_DoubleSpinBox.setValue(self._eproc_logic.ref_deviation)
+        self._mw.ref_deviation_LineEdit.setText(self.mw_to_field(self._eproc_logic.ref_deviation))
         self._mw.ref_mode_ComboBox.setCurrentText(self._eproc_logic.ref_mode)
 
         # to add: a remaining time display
@@ -252,6 +315,7 @@ class EPRoCGui(GUIBase):
         self._mw.ms_start_DoubleSpinBox.editingFinished.connect(self.change_ms_params)
         self._mw.ms_step_DoubleSpinBox.editingFinished.connect(self.change_ms_params)
         self._mw.ms_stop_DoubleSpinBox.editingFinished.connect(self.change_ms_params)
+
 
         self._mw.fs_mw_frequency_DoubleSpinBox.editingFinished.connect(self.change_fs_params)
         self._mw.fs_mw_power_DoubleSpinBox.editingFinished.connect(self.change_fs_params)
@@ -298,11 +362,17 @@ class EPRoCGui(GUIBase):
         # Internal trigger signals
         self._mw.action_run_stop.triggered.connect(self.run_stop_scan)
         self._mw.action_stop_next_sweep.triggered.connect(self._eproc_logic.stop_eproc_next_sweep)
+        self._mw.action_toggle_cw.triggered.connect(self.toggle_cw)
+        self._mw.action_toggle_modulation.triggered.connect(self.toggle_modulation)
         self._mw.action_Save.triggered.connect(self.save_data)
 
         # Control/values-changed signals to logic
         self.sigStartEproc.connect(self._eproc_logic.start_eproc, QtCore.Qt.QueuedConnection)
         self.sigStopEproc.connect(self._eproc_logic.stop_eproc, QtCore.Qt.QueuedConnection)
+        self.sigToggleCwOn.connect(self._eproc_logic.mw_on, QtCore.Qt.QueuedConnection)
+        self.sigToggleCwOff.connect(self._eproc_logic.mw_off, QtCore.Qt.QueuedConnection)
+        self.sigToggleModulationOn.connect(self._eproc_logic.mw_on, QtCore.Qt.QueuedConnection)
+        self.sigToggleModulationOff.connect(self._eproc_logic.mw_off, QtCore.Qt.QueuedConnection)
         self.sigExtRefOn.connect(self._eproc_logic.lockin_ext_ref_on, QtCore.Qt.QueuedConnection)
         self.sigExtRefOff.connect(self._eproc_logic.lockin_ext_ref_off, QtCore.Qt.QueuedConnection)
         self.sigPowerSupplyBoardOn.connect(self._eproc_logic.psb_on, QtCore.Qt.QueuedConnection)
@@ -341,6 +411,10 @@ class EPRoCGui(GUIBase):
             self._mw.fs_start_DoubleSpinBox.setEnabled(False)
             self._mw.fs_step_DoubleSpinBox.setEnabled(False)
             self._mw.fs_stop_DoubleSpinBox.setEnabled(False)
+            self._mw.fs_start_LineEdit.setEnabled(False)
+            self._mw.fs_step_LineEdit.setEnabled(False)
+            self._mw.fs_stop_LineEdit.setEnabled(False)
+
         else:
             self._mw.fs_RadioButton.setChecked(True)
             self._mw.ms_field_DoubleSpinBox.setEnabled(False)
@@ -348,6 +422,19 @@ class EPRoCGui(GUIBase):
             self._mw.ms_start_DoubleSpinBox.setEnabled(False)
             self._mw.ms_step_DoubleSpinBox.setEnabled(False)
             self._mw.ms_stop_DoubleSpinBox.setEnabled(False)
+            self._mw.ms_start_LineEdit.setEnabled(False)
+            self._mw.ms_step_LineEdit.setEnabled(False)
+            self._mw.ms_stop_LineEdit.setEnabled(False)
+
+
+        # connect settings signals
+        self._mw.action_Analysis.triggered.connect(self._menu_analysis)
+        self._mw.action_Motorized_Stages.triggered.connect(self._menu_motorized_stages)
+        #self._sd.accepted.connect(self.update_settings)
+        #self._sd.rejected.connect(self.reject_settings)
+        #self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(
+            #self.update_settings)
+        #self.reject_settings()
 
         # Show the Main EPRoC GUI:
         self.show()
@@ -358,6 +445,9 @@ class EPRoCGui(GUIBase):
         @return int: error code (0:OK, -1:error)
         """
         # Disconnect signals
+        self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.disconnect()
+        self._sd.accepted.disconnect()
+        self._sd.rejected.disconnect()
         self._eproc_logic.sigParameterUpdated.disconnect()
         self._eproc_logic.sigOutputStateUpdated.disconnect()
         self._eproc_logic.sigSetLabelEprocPlots.disconnect()
@@ -381,8 +471,12 @@ class EPRoCGui(GUIBase):
         self.sigPowerSupplyAmplifierParamsChanged.disconnect()
         self.sigSaveMeasurement.disconnect()
 
+        self._mw.action_Analysis.triggered.disconnect()
+
         self._mw.action_run_stop.triggered.disconnect()
         self._mw.action_stop_next_sweep.triggered.disconnect()
+        self._mw.action_toggle_cw.triggered.disconnect()
+        self._mw.action_toggle_modulation.triggered.disconnect()
         self._mw.action_Save.triggered.disconnect()
 
         self._mw.ms_field_DoubleSpinBox.editingFinished.disconnect()
@@ -632,7 +726,7 @@ class EPRoCGui(GUIBase):
 
         return start, stop, step
     '''
-
+    # these two shouldnt be in the gui file probably :|
     def tau_float_to_str(self, tau):
         if tau < 1:
             tau *= 1000
@@ -670,11 +764,28 @@ class EPRoCGui(GUIBase):
         self._mw.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
         return
 
+    # all the procedure should be checked comparing with odmrgui: set enabled false and then enabled through update status? investigate!!
+    def toggle_cw(self, is_checked):
+        if is_checked:
+            self.sigToggleCwOn.emit()
+        else:
+            self.sigToggleCwOff.emit()
+        return
+
+    def toggle_modulation(self, is_checked):
+        if is_checked:
+            self.sigToggleModulationOn.emit()
+        else:
+            self.sigToggleModulationOff.emit()
+        return
+
     def run_stop_scan(self, is_checked):
         """ Manages what happens if eproc scan is started/stopped. """
         # Update measurement status (activate/deactivate widgets/actions)
         if is_checked:
             self._mw.action_stop_next_sweep.setEnabled(True)
+            self._mw.action_toggle_cw.setEnabled(False)
+            self._mw.action_toggle_modulation.setEnabled(False)
             # Set every Box and Button in the gui as not enabled
             for widget_name in self._mw.__dict__.keys():
                 if widget_name.endswith('Box') or widget_name.endswith('Button'):
@@ -695,11 +806,15 @@ class EPRoCGui(GUIBase):
         # Block signals from firing
         self._mw.action_run_stop.blockSignals(True)
         self._mw.action_stop_next_sweep.blockSignals(True)
+        self._mw.action_toggle_cw.blockSignals(True) # are these two necessary?
+        self._mw.action_toggle_modulation.blockSignals(True)
 
         if not is_running:
             self._mw.action_run_stop.setChecked(False)
             self._mw.action_stop_next_sweep.setChecked(False)
-            self._mw.action_stop_next_sweep.setEnabled(False)
+            self._mw.action_stop_next_sweep.setEnabled(False) # is this necessary?
+            self._mw.action_toggle_cw.setEnabled(True)
+            self._mw.action_toggle_modulation.setEnabled(True)
             # Set enabled every Box and Button in the gui
             for widget_name in self._mw.__dict__.keys():
                 if widget_name.endswith('Box') or widget_name.endswith('Button'):
@@ -729,6 +844,8 @@ class EPRoCGui(GUIBase):
         # Unblock signal firing
         self._mw.action_run_stop.blockSignals(False)
         self._mw.action_stop_next_sweep.blockSignals(False)
+        self._mw.action_toggle_cw.blockSignals(False)
+        self._mw.action_toggle_modulation.blockSignals(False)
         return
 
     def update_plots(self, eproc_data_x, eproc_data_y):
@@ -768,18 +885,21 @@ class EPRoCGui(GUIBase):
             self._mw.ms_start_DoubleSpinBox.blockSignals(True)
             self._mw.ms_start_DoubleSpinBox.setValue(param)
             self._mw.ms_start_DoubleSpinBox.blockSignals(False)
+            self._mw.ms_start_LineEdit.setText(self.mw_to_field(param))
 
         param = param_dict.get('ms_step')
         if param is not None:
             self._mw.ms_step_DoubleSpinBox.blockSignals(True)
             self._mw.ms_step_DoubleSpinBox.setValue(param)
             self._mw.ms_step_DoubleSpinBox.blockSignals(False)
+            self._mw.ms_step_LineEdit.setText(self.mw_to_field(param))
 
         param = param_dict.get('ms_stop')
         if param is not None:
             self._mw.ms_stop_DoubleSpinBox.blockSignals(True)
             self._mw.ms_stop_DoubleSpinBox.setValue(param)
             self._mw.ms_stop_DoubleSpinBox.blockSignals(False)
+            self._mw.ms_stop_LineEdit.setText(self.mw_to_field(param))
 
         # Field sweep parameters Dock widget
         param = param_dict.get('fs_mw_frequency')
@@ -788,29 +908,34 @@ class EPRoCGui(GUIBase):
             self._mw.fs_mw_frequency_DoubleSpinBox.setValue(param)
             self._mw.fs_mw_frequency_DoubleSpinBox.blockSignals(False)
 
+
         param = param_dict.get('fs_mw_power')
         if param is not None:
             self._mw.fs_mw_power_DoubleSpinBox.blockSignals(True)
             self._mw.fs_mw_power_DoubleSpinBox.setValue(param)
             self._mw.fs_mw_power_DoubleSpinBox.blockSignals(False)
 
+
         param = param_dict.get('fs_start')
         if param is not None:
             self._mw.fs_start_DoubleSpinBox.blockSignals(True)
             self._mw.fs_start_DoubleSpinBox.setValue(param)
             self._mw.fs_start_DoubleSpinBox.blockSignals(False)
+            self._mw.fs_start_LineEdit.setText(self.field_to_mw(param))
 
         param = param_dict.get('fs_step')
         if param is not None:
             self._mw.fs_step_DoubleSpinBox.blockSignals(True)
             self._mw.fs_step_DoubleSpinBox.setValue(param)
             self._mw.fs_step_DoubleSpinBox.blockSignals(False)
+            self._mw.fs_step_LineEdit.setText(self.field_to_mw(param))
 
         param = param_dict.get('fs_stop')
         if param is not None:
             self._mw.fs_stop_DoubleSpinBox.blockSignals(True)
             self._mw.fs_stop_DoubleSpinBox.setValue(param)
             self._mw.fs_stop_DoubleSpinBox.blockSignals(False)
+            self._mw.fs_stop_LineEdit.setText(self.field_to_mw(param))
 
         # Lockin parameters Dock widget
         param = param_dict.get('lia_range')
@@ -903,6 +1028,8 @@ class EPRoCGui(GUIBase):
             self._mw.ref_deviation_DoubleSpinBox.blockSignals(True)
             self._mw.ref_deviation_DoubleSpinBox.setValue(param)
             self._mw.ref_deviation_DoubleSpinBox.blockSignals(False)
+            self._mw.ref_deviation_LineEdit.setText(self.field_to_mw(param))
+
 
         param = param_dict.get('fm_mode')
         if param is not None:
@@ -1017,11 +1144,17 @@ class EPRoCGui(GUIBase):
             self._mw.ms_start_DoubleSpinBox.setEnabled(True)
             self._mw.ms_step_DoubleSpinBox.setEnabled(True)
             self._mw.ms_stop_DoubleSpinBox.setEnabled(True)
+            self._mw.ms_start_LineEdit.setEnabled(True)
+            self._mw.ms_step_LineEdit.setEnabled(True)
+            self._mw.ms_stop_LineEdit.setEnabled(True)
             self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(False)
             self._mw.fs_mw_power_DoubleSpinBox.setEnabled(False)
             self._mw.fs_start_DoubleSpinBox.setEnabled(False)
             self._mw.fs_step_DoubleSpinBox.setEnabled(False)
             self._mw.fs_stop_DoubleSpinBox.setEnabled(False)
+            self._mw.fs_start_LineEdit.setEnabled(False)
+            self._mw.fs_step_LineEdit.setEnabled(False)
+            self._mw.fs_stop_LineEdit.setEnabled(False)
             self.change_ms_params()
         else:
             self._eproc_logic.is_microwave_sweep = False
@@ -1030,11 +1163,17 @@ class EPRoCGui(GUIBase):
             self._mw.fs_start_DoubleSpinBox.setEnabled(True)
             self._mw.fs_step_DoubleSpinBox.setEnabled(True)
             self._mw.fs_stop_DoubleSpinBox.setEnabled(True)
+            self._mw.fs_start_LineEdit.setEnabled(True)
+            self._mw.fs_step_LineEdit.setEnabled(True)
+            self._mw.fs_stop_LineEdit.setEnabled(True)
             self._mw.ms_field_DoubleSpinBox.setEnabled(False)
             self._mw.ms_mw_power_DoubleSpinBox.setEnabled(False)
             self._mw.ms_start_DoubleSpinBox.setEnabled(False)
             self._mw.ms_step_DoubleSpinBox.setEnabled(False)
             self._mw.ms_stop_DoubleSpinBox.setEnabled(False)
+            self._mw.ms_start_LineEdit.setEnabled(False)
+            self._mw.ms_step_LineEdit.setEnabled(False)
+            self._mw.ms_stop_LineEdit.setEnabled(False)
             self.change_fs_params()
         return
 
@@ -1128,3 +1267,54 @@ class EPRoCGui(GUIBase):
         filetag = self._mw.save_tag_LineEdit.text()
         self.sigSaveMeasurement.emit(filetag)
         return
+
+    def _menu_analysis(self):
+        """ Open the settings menu """
+        self._sd.show()
+
+
+    def _menu_motorized_stages(self):
+        """ Open the settings menu """
+        self._KDC101.show()
+
+    def update_settings(self):
+        """ Write the new settings from the gui to the file. """
+        number_of_lines = self._sd.matrix_lines_SpinBox.value()
+        clock_frequency = self._sd.clock_frequency_DoubleSpinBox.value()
+        oversampling = self._sd.oversampling_SpinBox.value()
+        lock_in = self._sd.lock_in_CheckBox.isChecked()
+        self.sigOversamplingChanged.emit(oversampling)
+        self.sigLockInChanged.emit(lock_in)
+        self.sigClockFreqChanged.emit(clock_frequency)
+        self.sigNumberOfLinesChanged.emit(number_of_lines)
+        return
+
+    def getLoadFile(self):
+        """ Ask the user for a file where the configuration should be loaded
+            from
+        """
+        defaultconfigpath = os.path.join(get_main_dir(), 'config')
+        filename = QtWidgets.QFileDialog.getOpenFileName(
+            self._sd,
+            'Load Configration',
+            defaultconfigpath,
+            'Configuration files (*.cfg)')[0]
+        if filename != '':
+            reply = QtWidgets.QMessageBox.question(
+                self._sd,
+                'Restart',
+                'Do you want to restart to use the configuration?',
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No
+            )
+            restart = (reply == QtWidgets.QMessageBox.Yes)
+            self.sigLoadConfig.emit(filename, restart)
+
+    def field_to_mw(self, field):
+        return str(round((field * 2.8), 2)) + 'MHz'
+
+    def mw_to_field(self, freq):
+        return str(round((freq * 1e-6 / 2.8), 2)) + 'G'
+
+
+

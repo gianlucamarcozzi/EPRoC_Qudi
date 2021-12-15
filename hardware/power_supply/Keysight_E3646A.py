@@ -37,7 +37,8 @@ class E3646A(Base, ProcessControlInterface):
     _address = ConfigOption('address', missing='error')
 
     _voltage_min = ConfigOption('voltage_min', 0)
-    _voltage_max = ConfigOption('voltage_max', 8)
+    _low_voltage_max = ConfigOption('low_voltage_max', 8)
+    _high_voltage_max = ConfigOption('high_voltage_max', 8)
     _current_max = ConfigOption('current_max', 1.5)
 
     _inst = None
@@ -58,7 +59,7 @@ class E3646A(Base, ProcessControlInterface):
         time.sleep(0.5)
         self._query("*OPC?")
 
-        self._write("INST P6V")
+        self._write("VOLT:RANG LOW")
         self._write("VOLT 0")
         self._write("CURR 0")
         return
@@ -116,9 +117,13 @@ class E3646A(Base, ProcessControlInterface):
             @return float: actual control value
         """
         self.change_output(outp)
-        mini, maxi = self.get_control_limit()
-        if mini <= value <= maxi:
-            self._write("VOLT {}".format(value))
+        mini, maxi1, maxi2 = self.get_control_limit()
+        if mini <= value <= maxi1:
+            self._write('VOLT:RANG LOW')
+            self._write('VOLT {}'.format(value))
+        elif maxi1 < value <= maxi2:
+            self._write('VOLT:RANG HIGH')
+            self._write('VOLT {}'.format(value))
         else:
             self.log.error('Voltage value {} out of range'.format(value))
         return self.get_control_value()
@@ -143,4 +148,4 @@ class E3646A(Base, ProcessControlInterface):
 
             @return tuple(float, float): minimum and maximum of control value
         """
-        return self._voltage_min, self._voltage_max
+        return self._voltage_min, self._low_voltage_max, self._high_voltage_max

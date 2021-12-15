@@ -23,8 +23,6 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
     _address = ConfigOption('gpib_address', missing='error')
     _timeout = ConfigOption('gpib_timeout', 10, missing='warn')
 
-    waiting_time = 0.5
-
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
         # trying to load the visa connection to the module
@@ -61,7 +59,11 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
 
     def set_central_field(self, field=None):
         self._connection.write('CF{}'.format(field))
-        time.sleep(self.waiting_time)
+        time.sleep(0.05) # is this enough?
+        led_status = self._connection.query('LE')
+        while led_status == 1:
+            time.sleep(0.01)
+            led_status = self._connection.query('LE')
         return field
 
     def set_sweep(self, cf=None, width=None, wait_time=None):

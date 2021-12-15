@@ -486,6 +486,14 @@ class EPRoCLogic(GenericLogic):
         self.sigOutputStateUpdated.emit(is_running)
         return mode, is_running
 
+    def modulation_on(self):
+        self._mw_device.reference_on()
+        return
+
+    def modulation_off(self):
+        self._mw_device.reference_off()
+        return
+
     def start_eproc(self):
         with self.threadlock:
             if self.module_state() == 'locked':
@@ -515,12 +523,12 @@ class EPRoCLogic(GenericLogic):
             remaining_time = self.lia_waiting_time * self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps
             self._startTime = time.time()
 
-            if self.is_external_reference:
-                self._mw_device.reference_on()
-            mode, is_running = self.mw_on()
-            if not is_running:
-                self.module_state.unlock()
-                return -1
+            # if self.is_external_reference:
+            #     self._mw_device.reference_on()
+            # mode, is_running = self.mw_on()
+            # if not is_running:
+            #     self.module_state.unlock()
+            #     return -1
 
             self._initialize_eproc_plots()
             self.eproc_raw_data = np.zeros(
@@ -561,22 +569,29 @@ class EPRoCLogic(GenericLogic):
 
     def _next_measure(self):
         with self.threadlock:
-            # If the eproc measurement is not running do nothing
             if self.module_state() != 'locked':
                 return
 
             if self.stopRequested:
                 self.stopRequested = False
                 self.measurement_duration = time.time() - self._startTime
-                self.mw_off()
-                if self.is_external_reference:
-                    self._mw_device.reference_off()
+                # self.mw_off()
+                # if self.is_external_reference:
+                #     self._mw_device.reference_off()
                 self.module_state.unlock()
                 return
 
             time.sleep(self.lia_waiting_time)
-            self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index, :] = self._lockin_device.get_data_lia()[:4] #this is for 4 channels
-            # this may be the solution for the stoprequested problem
+            self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
+                                :] = self._lockin_device.get_data_lia()[:4] #this is for 4 channels
+            # sometimes the lia returns values that are really close to zero and not the real values.
+            # the measurement is performed again in that case
+            for i in range(len(self.eproc_raw_data[0, 0, 0, :])):
+                while self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index, i] < 1e-7:
+                    time.sleep(0.01)
+                    self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
+                                        :] = self._lockin_device.get_data_lia()[:4]  # this is for 4 channels
+
             '''
             if error:
                 self.stopRequested = True
@@ -740,7 +755,7 @@ class EPRoCLogic(GenericLogic):
         parameters['Accumulations Per Point'] = self.number_of_accumulations
 
         parameters['Lockin Input Range (V)'] = self.lia_range
-        parameters['Lockin Amplitude (V)'] = self.lia_uac
+        parameters['Lockin Amplitude (V)'] = str(self.lia_uac)
         parameters['Lockin Coupling'] = self.lia_coupling
         parameters['Lockin tau A (s)'] = str(self.lia_tauA)
         parameters['Lockin Phase A (°)'] = str(self.lia_phaseA)
