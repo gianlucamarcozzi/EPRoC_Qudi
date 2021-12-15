@@ -21,16 +21,6 @@
        <string/>
       </property>
       <layout class="QGridLayout" name="gridLayout_9">
-       <item row="0" column="0">
-        <widget class="PlotWidget" name="ch1_PlotWidget">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="1">
         <widget class="PlotWidget" name="ch3_PlotWidget">
          <property name="sizePolicy">
@@ -53,6 +43,16 @@
        </item>
        <item row="1" column="1">
         <widget class="PlotWidget" name="ch4_PlotWidget">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>1</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="PlotWidget" name="ch1_PlotWidget">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>1</horstretch>
@@ -1000,19 +1000,6 @@
      <item row="5" column="1">
       <widget class="QLCDNumber" name="elapsed_sweeps_DisplayWidget"/>
      </item>
-     <item row="6" column="1">
-      <widget class="QLCDNumber" name="remaining_time_DisplayWidget">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="digitCount">
-        <number>7</number>
-       </property>
-      </widget>
-     </item>
      <item row="6" column="0">
       <widget class="QLabel" name="label_13">
        <property name="sizePolicy">
@@ -1025,6 +1012,9 @@
         <string>Remaining Time (s) :</string>
        </property>
       </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QLCDNumber" name="elapsed_sweeps_DisplayWidget_2"/>
      </item>
     </layout>
    </widget>
