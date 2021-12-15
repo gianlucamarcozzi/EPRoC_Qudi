@@ -117,5 +117,5 @@ class LockinDummy(Base, LockinInterface):
         return ref
 
     def get_data_lia(self):
-        return [0, 0, 0, 0]
+        return np.random.rand(4)*2-1
 

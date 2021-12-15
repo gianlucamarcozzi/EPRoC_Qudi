@@ -38,4 +38,4 @@ class MagnetBrukerDummy(Base, EprocMagnetInterface):
         return 0
 
     def set_central_field(self, field=None):
-        return 3480
+        return field
