@@ -45,7 +45,7 @@ class EPRoCMainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'ui_mw_and_field.ui')
+        ui_file = os.path.join(this_dir, 'ui_eprocgui.ui')
 
         # Load it
         super(EPRoCMainWindow, self).__init__()

@@ -20,8 +20,6 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import visa
 import time
-import numpy as np
-
 from core.module import Base
 from core.configoption import ConfigOption
 from interface.microwave_interface import MicrowaveInterface
@@ -414,10 +412,13 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         return 0
     '''
     def reference_on(self):
-        # Both the frequency modulation and the lf output need to be activated, in order to have and output signal which
-        # is modulated.
-        # How can I understand in a smart way if what is to be set is the channel FM1 or FM2?
-        # Is current_mode needed at all? can it be eliminated (e.g. dummy instead of current_mode)?
+        """
+        Turn on the modulation frequency o
+        Both the frequency modulation and the lf output need to be activated, in order to have an output signal which
+        is modulated.
+        How can I understand in a smart way if what is to be set is the channel FM1 or FM2?
+        """
+
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
         is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
         if not is_fm_running:

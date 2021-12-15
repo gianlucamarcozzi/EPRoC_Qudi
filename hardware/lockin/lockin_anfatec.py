@@ -1,9 +1,5 @@
 import time
-import numpy as np
 import requests
-import os
-import subprocess
-
 from core.module import Base
 from core.configoption import ConfigOption
 from interface.test_lockin_interface import LockinInterface
@@ -26,6 +22,7 @@ class LockinAnfatec(Base, LockinInterface):
     _username = 'long'
     _password = 'nga'
 
+    # Possible values that the user can select for the time constant in the Anfatec lockin.
     tau_values = [0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50,
                   100, 200, 500, 1000]
 
@@ -38,6 +35,7 @@ class LockinAnfatec(Base, LockinInterface):
         return
 
     def on_deactivate(self):
+        """Connection is not closed because the Anfatec lockin is connected via LAN and not VISA"""
         return
 
     def get_actual_value(self, param):
@@ -105,7 +103,6 @@ class LockinAnfatec(Base, LockinInterface):
 
     def set_time_constants(self, tauA=None, tau1=None):
         """
-
         :param: tauA 0.1ms is not supported, tau1 {...|-10} -10: same value as tauA
         :return:
         """
@@ -150,12 +147,18 @@ class LockinAnfatec(Base, LockinInterface):
         actual_slope = self.get_actual_value('Rolloff')
         return actual_slope
 
-    def set_input_config(self, i):
+    def set_input_config(self, config):
         """
         :param i: 0: A, 1: A-B, 2: A&B
         :return:
         """
-        query = '89A_' + '2' + '_'
+        if config == 'A':
+            config = '0'
+        elif config == 'A-B':
+            config = '1'
+        elif config == 'A&B':
+            config = '2'
+        query = '89A_' + config + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
         time.sleep(self._delay)
@@ -169,6 +172,10 @@ class LockinAnfatec(Base, LockinInterface):
         return actual_config
 
     def set_amplitude(self, uac):
+        """
+        :param uac: amplitude
+        :return actual_uac: actual_amplitude
+        """
         query = '8D9_' + str(uac) + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
@@ -190,6 +197,10 @@ class LockinAnfatec(Base, LockinInterface):
         return actual_freq
 
     def set_phases(self, phase=None, phase0=None):
+        """
+        :param phase: phase channel A
+        :param phase0: phase channel B
+        """
         if phase is not None:
             query = '8D59_' + str(phase) + '_'
             url = ('http://'+self._address+'/cgi-bin/remote.cgi?' + query)
@@ -205,6 +216,9 @@ class LockinAnfatec(Base, LockinInterface):
         return actual_phase, actual_phase0
 
     def set_harmonic(self, i):
+        """
+        :param: i: {1|...|15}
+        """
         query = '8D1_' + str(i) + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)
@@ -234,6 +248,9 @@ class LockinAnfatec(Base, LockinInterface):
         return actual_ref
 
     def get_data_lia(self):
+        """
+        Download the measured values on the screen of the lockin from the server
+        """
         url = ('http://' + self._address + '/data/lia.dat')
         r = requests.get(url)
         data_raw = r.text.replace(" ", "")
