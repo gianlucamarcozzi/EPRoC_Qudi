@@ -1010,7 +1010,11 @@
       </widget>
      </item>
      <item row="5" column="1">
-      <widget class="QLCDNumber" name="elapsed_sweeps_DisplayWidget"/>
+      <widget class="QLCDNumber" name="elapsed_sweeps_DisplayWidget">
+       <property name="digitCount">
+        <number>6</number>
+       </property>
+      </widget>
      </item>
      <item row="6" column="1">
       <widget class="QLCDNumber" name="remaining_time_DisplayWidget">
@@ -1019,6 +1023,9 @@
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="digitCount">
+        <number>6</number>
        </property>
       </widget>
      </item>

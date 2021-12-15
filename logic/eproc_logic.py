@@ -547,11 +547,15 @@ class EPRoCLogic(GenericLogic):
             else:
                 self.lia_waiting_time = self.lia_tauA * self.lia_waiting_time_factor
 
+            # Here waiting_time to wait for the lockin time constant at the initial point of mw/field of the measurement
+            time.sleep(self.lia_waiting_time)
+
             self.elapsed_sweeps = 0
             self.elapsed_accumulations = 0
             self.actual_index = 0    # maybe this could be called elapsed_index to be coherent, but I think there should be some changes in the rest of the code then
 
-            remaining_time = self.lia_waiting_time * self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps
+            # is this useful?
+            remaining_time = self.lia_waiting_time/100 * self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps
             self._startTime = time.time()
 
 
@@ -615,7 +619,9 @@ class EPRoCLogic(GenericLogic):
                 self.sigOutputStateUpdated.emit(False)
                 return
 
-            time.sleep(self.lia_waiting_time)
+            # Here waiting_time divided by something to wait for the next accumulation at the same value of mw/field
+            time.sleep(self.lia_waiting_time/100)
+
             self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
                                 :] = self._lockin_device.get_data_lia()[:4] #this is for 4 channels
             # sometimes the lia returns values that are really close to zero and not the real values.
@@ -635,7 +641,7 @@ class EPRoCLogic(GenericLogic):
 
             self.elapsed_accumulations += 1
 
-            remaining_time = self.lia_waiting_time * (
+            remaining_time = self.lia_waiting_time/100 * (
                     self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps - (
                         self.elapsed_accumulations + self.number_of_accumulations * self.actual_index +
                         self.number_of_accumulations * self.eproc_plot_x.size * self.elapsed_sweeps))
@@ -664,6 +670,7 @@ class EPRoCLogic(GenericLogic):
                         self.ms_actual_frequency = self.ms_start
                     else:
                         self.fs_actual_field = self.fs_start
+
                     self.elapsed_sweeps += 1
                     self.actual_index = 0
                     if self.elapsed_sweeps == self.number_of_sweeps or self.stopNextSweepRequested:
@@ -676,6 +683,9 @@ class EPRoCLogic(GenericLogic):
                     else:
                         self.fs_actual_field = self._magnet.set_central_field(self.fs_actual_field + self.fs_step)
                     self.actual_index += 1
+
+                # Here waiting_time to wait for the lockin time constant at the next point of mw/field of the measurement
+                time.sleep(self.lia_waiting_time)
             # here is the old method, where we update the all eproc_plot_y array at each frequency
             '''
             # the average of the last line is the same for evey value of elapsed_sweeps
@@ -788,6 +798,7 @@ class EPRoCLogic(GenericLogic):
             parameters['Stop Field (G)'] = str(self.fs_stop)
 
         parameters['Duration Of The Experiment'] = time.strftime('%Hh%Mm%Ss', time.gmtime(self.measurement_duration))
+        parameters['Duration Of The Experiment in s'] = self.measurement_duration
         parameters['Elapsed Sweeps'] = self.elapsed_sweeps
         parameters['Accumulations Per Point'] = self.number_of_accumulations
 
