@@ -278,3 +278,30 @@ class MicrowaveDummy(Base, MicrowaveInterface):
 
         time.sleep(self._FREQ_SWITCH_SPEED)  # that is the switching speed
         return
+
+    def set_reference(self, shape=None, ref_freq=None, ref_mode=None, ref_deviation=None):
+        """
+
+        """
+        self.log.info('MicrowaveDummy>set_reference')
+        self.ref_shape = shape
+        self.ref_freq = ref_freq
+        self.ref_mode = ref_mode
+        self.ref_deviation = ref_deviation
+        return self.ref_shape, self.ref_freq, self.ref_mode, self.ref_deviation
+
+    def reference_on(self):
+        """
+
+        """
+        self.log.info('MicrowaveDummy>reference_on')
+        # Returns is_fm_running and is_lfo_running
+        return True, True
+
+    def reference_off(self):
+        """
+
+        """
+        self.log.info('MicrowaveDummy>reference_off')
+        # Returns is_fm_running and is_lfo_running
+        return False, False
