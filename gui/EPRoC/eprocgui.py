@@ -102,6 +102,16 @@ class EPRoCGui(GUIBase):
     sigPowerSupplyBoardOff = QtCore.Signal()
     sigPowerSupplyAmplifierOn = QtCore.Signal()
     sigPowerSupplyAmplifierOff = QtCore.Signal()
+    sigHome = QtCore.Signal(str)
+    sigToggleXMotorOn = QtCore.Signal()
+    sigToggleXMotorOff = QtCore.Signal()
+    sigToggleYMotorOn = QtCore.Signal()
+    sigToggleYMotorOff = QtCore.Signal()
+    sigToggleZMotorOn = QtCore.Signal()
+    sigToggleZMotorOff = QtCore.Signal()
+    sigMove = QtCore.Signal(str)
+    sigXPosition = QtCore.Signal()
+
 
     sigMsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigFsParamsChanged = QtCore.Signal(float, float, float, float, float)
@@ -110,6 +120,8 @@ class EPRoCGui(GUIBase):
     sigLockinParamsChanged = QtCore.Signal(str, float, str, float, float, float, float, float, float, int, str, str)
     sigPowerSupplyBoardParamsChanged = QtCore.Signal(float, float, float, float)
     sigPowerSupplyAmplifierParamsChanged = QtCore.Signal(float, float, float, float)
+    sigMotorParamsChanged = QtCore.Signal(float, float, float, float, float, float, float, float, float, float, float,
+                                          float)
 
     sigSaveMeasurement = QtCore.Signal(str)
 
@@ -416,13 +428,72 @@ class EPRoCGui(GUIBase):
             self._mw.ms_step_LineEdit.setEnabled(False)
             self._mw.ms_stop_LineEdit.setEnabled(False)
 
-
         # connect settings signals
         self._mw.action_Analysis.triggered.connect(self._menu_analysis)
         self._mw.action_Motorized_Stages.triggered.connect(self._menu_motorized_stages)
 
         # Show the Main EPRoC GUI:
         self.show()
+
+        #######################
+        #####Signal Motors#####
+        #######################
+
+        # x_motor
+        self._KDC101.action_toggle_x_motor.triggered.connect(self.connect_x_motor)
+        self._KDC101.x_Home_PushButton.clicked.connect(self.x_home)
+        self._KDC101.x_Set_Position_doubleSpinBox.setValue(self._eproc_logic.x_motor_set_position)
+        self._KDC101.x_Set_Position_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        #self._KDC101.x_Set_Position_doubleSpinBox.editingFinished.connect(self.x_move_to_position)
+        self._KDC101.x_Move_PushButton.clicked.connect(self.x_move_to_position)
+        self._KDC101.x_Start_doubleSpinBox.setValue(self._eproc_logic.x_start)
+        self._KDC101.x_Start_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        self._KDC101.x_Step_doubleSpinBox.setValue(self._eproc_logic.x_step)
+        self._KDC101.x_Step_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        self._KDC101.x_Stop_doubleSpinBox.setValue(self._eproc_logic.x_stop)
+        self._KDC101.x_Stop_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+
+        #self._KDC101.x_Position_lineEdit.setText(self.x_read_position(self._eproc_logic.read_position))
+
+        # y_motor
+        self._KDC101.action_toggle_y_motor.triggered.connect(self.connect_y_motor)
+        self._KDC101.y_Home_PushButton.clicked.connect(self.y_home)
+        self._KDC101.y_Set_Position_doubleSpinBox.setValue(self._eproc_logic.y_motor_set_position)
+        self._KDC101.y_Set_Position_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        #self._KDC101.y_Set_Position_doubleSpinBox.editingFinished.connect(self.y_move_to_position)
+        self._KDC101.y_Move_PushButton.clicked.connect(self.y_move_to_position)
+        self._KDC101.y_Start_doubleSpinBox.setValue(self._eproc_logic.y_start)
+        self._KDC101.y_Start_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        self._KDC101.y_Step_doubleSpinBox.setValue(self._eproc_logic.y_step)
+        self._KDC101.y_Step_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        self._KDC101.y_Stop_doubleSpinBox.setValue(self._eproc_logic.y_stop)
+        self._KDC101.y_Stop_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+
+        # z_motor
+        self._KDC101.action_toggle_z_motor.triggered.connect(self.connect_z_motor)
+        self._KDC101.z_Home_PushButton.clicked.connect(self.z_home)
+        self._KDC101.z_Set_Position_doubleSpinBox.setValue(self._eproc_logic.z_motor_set_position)
+        self._KDC101.z_Set_Position_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        #self._KDC101.z_Set_Position_doubleSpinBox.editingFinished.connect(self.z_move_to_position)
+        self._KDC101.z_Move_PushButton.clicked.connect(self.z_move_to_position)
+        self._KDC101.z_Start_doubleSpinBox.setValue(self._eproc_logic.z_start)
+        self._KDC101.z_Start_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        self._KDC101.z_Step_doubleSpinBox.setValue(self._eproc_logic.z_step)
+        self._KDC101.z_Step_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+        self._KDC101.z_Stop_doubleSpinBox.setValue(self._eproc_logic.z_stop)
+        self._KDC101.z_Stop_doubleSpinBox.editingFinished.connect(self.change_motor_params)
+
+        # internal trigger signals
+        self.sigToggleXMotorOn.connect(self._eproc_logic.x_motor_on, QtCore.Qt.QueuedConnection)
+        self.sigToggleXMotorOff.connect(self._eproc_logic.x_motor_off, QtCore.Qt.QueuedConnection)
+        self.sigToggleYMotorOn.connect(self._eproc_logic.y_motor_on, QtCore.Qt.QueuedConnection)
+        self.sigToggleYMotorOff.connect(self._eproc_logic.y_motor_off, QtCore.Qt.QueuedConnection)
+        self.sigToggleZMotorOn.connect(self._eproc_logic.z_motor_on, QtCore.Qt.QueuedConnection)
+        self.sigToggleZMotorOff.connect(self._eproc_logic.z_motor_off, QtCore.Qt.QueuedConnection)
+        self.sigHome.connect(self._eproc_logic.home, QtCore.Qt.QueuedConnection)
+        self.sigMotorParamsChanged.connect(self._eproc_logic.set_motor_parameters, QtCore.Qt.QueuedConnection)
+        self.sigMove.connect(self._eproc_logic.move, QtCore.Qt.QueuedConnection)
+        #self.sigReadPosition.connect(self._eproc_logic.read_position, QtCore.Qt.QueuedConnection)
 
     def on_deactivate(self):
         """ Reverse steps of activation
@@ -511,6 +582,38 @@ class EPRoCGui(GUIBase):
         self._mw.psa_voltage_outp2_DoubleSpinBox.editingFinished.disconnect()
         self._mw.psa_current_max_outp1_DoubleSpinBox.editingFinished.disconnect()
         self._mw.psa_current_max_outp2_DoubleSpinBox.editingFinished.disconnect()
+
+        ################
+        #####motors#####
+        ################
+
+        self._KDC101.x_Home_PushButton.clicked.disconnect()
+        self._KDC101.y_Home_PushButton.clicked.disconnect()
+        self._KDC101.z_Home_PushButton.clicked.disconnect()
+
+        self._KDC101.action_toggle_x_motor.triggered.disconnect()
+        self._KDC101.action_toggle_y_motor.triggered.disconnect()
+        self._KDC101.action_toggle_z_motor.triggered.disconnect()
+        self._KDC101.x_Set_Position_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.x_Move_PushButton.clicked.disconnect(self.x_move_to_position)
+        self._KDC101.y_Set_Position_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.y_Move_PushButton.clicked.disconnect(self.y_move_to_position)
+        self._KDC101.z_Set_Position_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.y_Move_PushButton.clicked.disconnect(self.y_move_to_position)
+        self._KDC101.x_Start_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.x_Step_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.x_Stop_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.y_Start_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.y_Step_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.y_Stop_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.z_Start_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.z_Step_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.z_Stop_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+
+        self.sigHome.disconnect()
+        self.sigMotorParamsChanged.disconnected()
+        self.sigMove.diconnect(self._eproc_logic.move, QtCore.Qt.QueuedConnection)
+        self.sigReadPosition.disconnect(self._eproc_logic.read_position, QtCore.Qt.QueuedConnection)
 
         self._mw.close()
         return 0
@@ -890,6 +993,27 @@ class EPRoCGui(GUIBase):
             self._mw.psa_current_max_outp2_DoubleSpinBox.blockSignals(True)
             self._mw.psa_current_max_outp2_DoubleSpinBox.setValue(param)
             self._mw.psa_current_max_outp2_DoubleSpinBox.blockSignals(False)
+
+        #motor parameter
+        param = param_dict.get('x_position')
+        if param is not None:
+            self._KDC101.x_Position_lineEdit.blockSignals(True)
+            self._KDC101.x_Position_lineEdit.setText(str(round(param, 3)))
+            self._KDC101.x_Position_lineEdit.blockSignals(False)
+
+        param = param_dict.get('y_position')
+        if param is not None:
+            self._KDC101.y_Position_lineEdit.blockSignals(True)
+            self._KDC101.y_Position_lineEdit.setText(str(round(param, 3)))
+            self._KDC101.y_Position_lineEdit.blockSignals(False)
+
+        param = param_dict.get('z_position')
+        if param is not None:
+            self._KDC101.z_Position_lineEdit.blockSignals(True)
+            self._KDC101.z_Position_lineEdit.setText(str(round(param, 3)))
+            self._KDC101.z_Position_lineEdit.blockSignals(False)
+
+
         return
 
     def change_fs_params(self):
@@ -1084,5 +1208,79 @@ class EPRoCGui(GUIBase):
     def mw_to_field(self, freq):
         return str(round((freq * 1e-6 / 2.8), 2)) + 'G'
 
+    def x_home(self):
+        self.sigHome.emit('x')
+        return
+
+    def y_home(self):
+        self.sigHome.emit('y')
+        return
+
+    def z_home(self):
+        self.sigHome.emit('z')
+        return
+
+    def connect_x_motor(self, is_checked):
+        """Toggle cw before starting the measurement"""
+        if is_checked:
+            self.sigToggleXMotorOn.emit()
+        else:
+            self.sigToggleXMotorOff.emit()
+        return
+
+    def connect_y_motor(self, is_checked):
+        """Toggle cw before starting the measurement"""
+        if is_checked:
+            self.sigToggleYMotorOn.emit()
+        else:
+            self.sigToggleYMotorOff.emit()
+        return
+
+    def connect_z_motor(self, is_checked):
+        """Toggle cw before starting the measurement"""
+        if is_checked:
+            self.sigToggleZMotorOn.emit()
+        else:
+            self.sigToggleZMotorOff.emit()
+        return
 
 
+    def change_motor_params(self):
+        """ Change parameters from the motor Dock Widget """
+        x_motor_set_position = self._KDC101.x_Set_Position_doubleSpinBox.value()
+        x_start = self._KDC101.x_Start_doubleSpinBox.value()
+        x_step = self._KDC101.x_Step_doubleSpinBox.value()
+        x_stop = self._KDC101.x_Stop_doubleSpinBox.value()
+        y_motor_set_position = self._KDC101.y_Set_Position_doubleSpinBox.value()
+        y_start = self._KDC101.y_Start_doubleSpinBox.value()
+        y_step = self._KDC101.y_Step_doubleSpinBox.value()
+        y_stop = self._KDC101.y_Stop_doubleSpinBox.value()
+        z_motor_set_position = self._KDC101.z_Set_Position_doubleSpinBox.value()
+        z_start = self._KDC101.z_Start_doubleSpinBox.value()
+        z_step = self._KDC101.z_Step_doubleSpinBox.value()
+        z_stop = self._KDC101.z_Stop_doubleSpinBox.value()
+
+        self.sigMotorParamsChanged.emit(x_motor_set_position, x_start, x_step, x_stop,
+                                        y_motor_set_position, y_start, y_step, y_stop,
+                                        z_motor_set_position, z_start, z_step, z_stop)
+
+        return
+
+    def x_move_to_position(self):
+        self.sigMove.emit('x')
+        return
+
+    def y_move_to_position(self):
+        self.sigMove.emit('y')
+        return
+
+    def z_move_to_position(self):
+        self.sigMove.emit('z')
+        return
+
+    def x_read_position(self, pos):
+
+        if self._KDC101.action_toggle_x_motor.isChecked():
+             return pos
+
+        return '0'

@@ -394,3 +394,4 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         self._connection.write('*TRG')
         time.sleep(self._FREQ_SWITCH_SPEED)  # that is the switching speed
         return 0
+

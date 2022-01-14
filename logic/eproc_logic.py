@@ -45,6 +45,10 @@ class EPRoCLogic(GenericLogic):
     magnet = Connector(interface='EprocMagnetInterface')
     powersupply1 = Connector(interface='ProcessControlInterface')
     powersupply2 = Connector(interface='ProcessControlInterface')
+    motorX = Connector(interface='MotorInterface')
+    motorY = Connector(interface='MotorInterface')
+    motorZ = Connector(interface='MotorInterface')
+
 
     # config option
     mw_scanmode = ConfigOption(
@@ -104,6 +108,28 @@ class EPRoCLogic(GenericLogic):
     is_microwave_sweep = StatusVar('is_microwave_sweep', True)
     is_external_reference = StatusVar('is_external_reference', True)
 
+    x_motor_set_position = StatusVar('x_motor_set_position', 1)
+    y_motor_set_position = StatusVar('y_motor_set_position', 1)
+    z_motor_set_position = StatusVar('z_motor_set_position', 1)
+
+    x_position = StatusVar('x_position', 0)
+    y_position = StatusVar('y_position', 0)
+    z_position = StatusVar('z_position', 0)
+
+    x_start = StatusVar('x_start', 0)
+    x_step = StatusVar('x_step', 0)
+    x_stop = StatusVar('x_stop', 0)
+
+    y_start = StatusVar('y_start', 0)
+    y_step = StatusVar('y_step', 0)
+    y_stop = StatusVar('y_stop', 0)
+
+    z_start = StatusVar('z_start', 0)
+    z_step = StatusVar('z_step', 0)
+    z_stop = StatusVar('z_stop', 0)
+
+
+
     # Internal signals
     sigNextMeasure = QtCore.Signal()
 
@@ -129,6 +155,9 @@ class EPRoCLogic(GenericLogic):
         self._magnet = self.magnet()
         self._power_supply_board = self.powersupply1()
         self._power_supply_amplifier = self.powersupply2()
+        self._x_motor = self.motorX()
+        self._y_motor = self.motorY()
+        self._z_motor = self.motorZ()
 
         # Get hardware constraints
         limits = self.get_hw_constraints()
@@ -174,8 +203,14 @@ class EPRoCLogic(GenericLogic):
                               self.psb_current_max_outp1, self.psb_current_max_outp2)
         self.set_psa_parameters(self.psa_voltage_outp1, self.psa_voltage_outp2,
                               self.psa_current_max_outp1, self.psa_current_max_outp2)
+        self.set_motor_parameters(self.x_motor_set_position, self.x_start, self.x_step, self.x_stop,
+                                  self.y_motor_set_position, self.y_start, self.y_step, self.y_stop,
+                                  self.z_motor_set_position, self.z_start, self.z_step, self.z_stop)
+
+
         # Connect signals
         self.sigNextMeasure.connect(self._next_measure, QtCore.Qt.QueuedConnection)
+
         return
 
     def on_deactivate(self):
@@ -788,3 +823,116 @@ class EPRoCLogic(GenericLogic):
 
         self.log.info('EPRoC data saved to:\n{0}'.format(filepath))
         return
+
+    def x_motor_on(self):
+        """
+        Switching on the x motor.
+        """
+        return self._x_motor.connection_on()
+
+    def y_motor_on(self):
+        """
+        Switching on the x motor.
+        """
+        return self._y_motor.connection_on()
+
+    def z_motor_on(self):
+        """
+        Switching on the x motor.
+        """
+        return self._z_motor.connection_on()
+
+    def x_motor_off(self):
+        """
+        Switching on the x motor.
+        """
+        return self._x_motor.connection_off()
+
+    def y_motor_off(self):
+        """
+        Switching on the x motor.
+        """
+        return self._y_motor.connection_off()
+
+    def z_motor_off(self):
+        """
+        Switching on the x motor.
+        """
+        return self._z_motor.connection_off()
+
+
+    def home(self, p):
+        """
+        Move the stage at home
+        """
+        if p == 'x':
+            self._x_motor.move_home()
+            self.read_position(p)
+
+        elif p == 'y':
+            self._y_motor.move_home()
+            self.read_position(p)
+
+        elif p == 'z':
+            self._z_motor.move_home()
+            self.read_position(p)
+
+        param_dict = {'x_position': self.x_position, 'y_position': self.y_position, 'z_position': self.z_position}
+
+        self.sigParameterUpdated.emit(param_dict)
+        return
+
+    def set_motor_parameters(self, x_motor_set_position, x_start, x_step, x_stop,
+                             y_motor_set_position, y_start, y_step, y_stop,
+                             z_motor_set_position, z_start, z_step, z_stop):
+
+        self.x_motor_set_position = x_motor_set_position
+        self.x_start = x_start
+        self.x_step = x_step
+        self.x_stop = x_stop
+        self.y_motor_set_position = y_motor_set_position
+        self.y_start = y_start
+        self.y_step = y_step
+        self.y_stop = y_stop
+        self.z_motor_set_position = z_motor_set_position
+        self.z_start = z_start
+        self.z_step = z_step
+        self.z_stop = z_stop
+
+        return
+
+    def move(self, p):
+        """
+        Move the stage at a certain position
+        """
+        if p == 'x':
+            self._x_motor.move(self.x_motor_set_position)
+            self.read_position(p)
+
+        elif p == 'y':
+            self._y_motor.move(self.y_motor_set_position)
+            self.read_position(p)
+
+        elif p == 'z':
+            self._z_motor.move(self.z_motor_set_position)
+            self.read_position(p)
+
+        param_dict = {'x_position': self.x_position, 'y_position': self.y_position, 'z_position': self.z_position}
+
+        self.sigParameterUpdated.emit(param_dict)
+
+        return
+
+    def read_position(self, p):
+
+        if p == 'x':
+            self.x_position = self._x_motor.read_position()
+
+        elif p == 'y':
+            self.y_position = self._y_motor.read_position()
+
+        elif p == 'z':
+            self.z_position = self._z_motor.read_position()
+
+        return
+

@@ -3,6 +3,7 @@ import serial
 import time
 from core.module import Base
 from interface.motor_interface import MotorInterface
+from core.configoption import ConfigOption
 
 
 # Basic Python APT/Kinesis Command Protocol Example using KDC001 and MTS50-Z8
@@ -11,6 +12,9 @@ from interface.motor_interface import MotorInterface
 # Pyserial is a not a native module installed within python and may need to be installed if not already
 
 class MotorSerialKDC101(Base, MotorInterface):
+
+    _address = ConfigOption('address', missing='error')
+
     # Port Settings
     # baud_rate = 115200
     data_bits = 8
@@ -18,7 +22,8 @@ class MotorSerialKDC101(Base, MotorInterface):
     Parity = serial.PARITY_NONE
 
     # Controller's Port and Channel
-    COM_Port = 'COM4'  # Change to preferred
+
+    #COM_Port = 'COM13'  # Change to preferred
     Channel = 1  # Channel is always 1 for a K Cube/T Cube
 
     Device_Unit_SF = 34555.  # pg 34 of protocal PDF (as of Issue 23)
@@ -27,13 +32,29 @@ class MotorSerialKDC101(Base, MotorInterface):
     destination = 0x50  # Destination byte; 0x50 for T Cube/K Cube, USB controllers
     source = 0x01  # Source Byte
 
-    def __init__(self):
-        self.baud_rate = 115200
+
+    Continuos = 1
+    Step = 2
+
+
+    #def __init__(self):
+    #    self.baud_rate = 115200
 
     def on_activate(self):
         # Create Serial Object
-        self.KDC001 = serial.Serial(port=self.COM_Port, baudrate=self.baud_rate, bytesize=self.data_bits,
+        self.baud_rate = 115200
+        self.data_bits = 8
+        self.stop_bits = 1
+        self.Parity = serial.PARITY_NONE
+        #self.KDC001 = serial.Serial(port=self._address, baudrate=self.baud_rate, bytesize=self.data_bits,
+        #                            parity=self.Parity, stopbits=self.stop_bits, timeout=0.1)
+
+    def connection_on(self):
+        self.KDC001 = serial.Serial(port=self._address, baudrate=self.baud_rate, bytesize=self.data_bits,
                                     parity=self.Parity, stopbits=self.stop_bits, timeout=0.1)
+
+    def connection_off(self):
+        self.KDC001.close()
 
     def on_deactivate(self):
         self.KDC001.close()
@@ -72,23 +93,50 @@ class MotorSerialKDC101(Base, MotorInterface):
 
     def velocity(self):
         velmin = 0
-        acc = 0.5
-        velmax = 4
+        acc = 0.1
+        velmax = 0.5
         self.dUnitvelmin = int(self.Device_Unit_Velocity * velmin)
         self.dUnitacc = int(self.Device_Unit_Acceleration * acc)
         self.dUnitvelmax = int(self.Device_Unit_Velocity * velmax)
-        self.KDC001.write(pack('<HBBBBHIII', 0x0413, 0x0E, 0x00, self.destination | 0x80, self.source, self.Channel, self.dUnitvelmin, self.dUnitacc,
-                          self.dUnitvelmax))
+        self.KDC001.write(pack('<HBBBBHIII', 0x0413, 0x0E, 0x00, self.destination | 0x80, self.source, self.Channel,
+                               self.dUnitvelmin, self.dUnitacc, self.dUnitvelmax))
 
-    def move(self):
-        """Move to absolute position; MGMSG_MOT_MOVE_ABSOLUTE (long version): set the position where you want to move the stage"""
+    def jog(self):
+        jog_step = 5
+        jog_min_vel = 0
+        jog_acc = 0.1
+        jog_vel_max = 0.5
+        jog_stop = 2
 
-        pos = 15.0  # mm
-        # questo lo dovrò poi scrivere fuori dal metodo facendoglielo pescare dalla GUI
+        self.jogvelmin = int(self.Device_Unit_Velocity * jog_min_vel)
+        self.jogacc = int(self.Device_Unit_Acceleration * jog_acc)
+        self.jogvelmax = int(self.Device_Unit_Velocity * jog_vel_max)
+        self.jogstep = int(self.Device_Unit_SF * jog_step)
+
+        self.KDC001.write(pack('<HBBBBHHIIIIH', 0x0416, 0x06, 0x00, self.destination | 0x80, self.source, self.Channel,
+                               self.Continuos, self.jogstep, self.jogvelmin, self.jogacc, self.jogvelmax, jog_stop))
+
+    def jog_move(self):
+        self.KDC001.write(pack('<HBBBB',0x046A, self.Channel, 0x01, self.destination, self.source))
+
+        # Confirm stage completed move before advancing; MGMSG_MOT_MOVE_COMPLETED
+        Rx = ''
+        Moved = pack('<H', 0x0464)
+        while Rx != Moved:
+            Rx = self.KDC001.read(2)
+        print('Move Complete')
+        self.KDC001.flushInput()
+        self.KDC001.flushOutput()
+
+    def move(self, pos):
+        """
+        Move to absolute position; MGMSG_MOT_MOVE_ABSOLUTE (long version):
+        set the position where you want to move the stage
+        """
 
         self.dUnitpos = int(self.Device_Unit_SF * pos)
-        self.KDC001.write(
-            pack('<HBBBBHI', 0x0453, 0x06, 0x00, self.destination | 0x80, self.source, self.Channel, self.dUnitpos))
+        self.KDC001.write(pack('<HBBBBHI', 0x0453, 0x06, 0x00, self.destination | 0x80, self.source,
+                               self.Channel, self.dUnitpos))
         print('Moving stage')
 
         # Confirm stage completed move before advancing; MGMSG_MOT_MOVE_COMPLETED
@@ -100,6 +148,7 @@ class MotorSerialKDC101(Base, MotorInterface):
         self.KDC001.flushInput()
         self.KDC001.flushOutput()
 
+
     def read_position(self):
         """Request Position; MGMSG_MOT_REQ_POSCOUNTER"""
 
@@ -110,7 +159,9 @@ class MotorSerialKDC101(Base, MotorInterface):
         self.header, self.chan_dent, self.position_dUnits = unpack('<6sHI', self.KDC001.read(12))
 
         getpos = self.position_dUnits / float(self.Device_Unit_SF)
-        print('Position: %.4f mm' % (getpos))
+        #print('Position: %.4f mm' % (getpos))
+
+        return getpos
 
     def get_constraints(self):
         return 0
