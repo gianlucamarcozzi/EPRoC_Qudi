@@ -577,6 +577,7 @@ class EPRoCLogic(GenericLogic):
                 # if self.is_external_reference:
                 #     self._mw_device.reference_off()
                 self.module_state.unlock()
+                self.sigOutputStateUpdated.emit(False)
                 return
 
             time.sleep(self.lia_waiting_time)

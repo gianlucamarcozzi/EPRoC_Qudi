@@ -1,10 +1,7 @@
-import time
 import numpy as np
-import os
-import subprocess
 
 from core.module import Base
-from core.configoption import ConfigOption
+from core.connector import Connector
 from interface.test_lockin_interface import LockinInterface
 
 
@@ -12,31 +9,26 @@ class LockinDummy(Base, LockinInterface):
     """
     Example config for copy-paste:
 
-    lockin_anfatec_203:
-        module.Class: 'lockin.test_lockin_anfatec_203.lockin_anfatec_203'
-        gpib_address: '192.168.1.7'
+    lockin_dummy:
+        module.Class: 'lockin.lockin_dummy.LockinDummy'
+        gpib_address: 'dummy'
     """
+
+    # connectors
+    # fitlogic = Connector(interface='FitLogic')
+
     tau_values = [0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50,
                   100, 200, 500, 1000]
 
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
+        # self._fit_logic = self.fitlogic()
         return
 
     def on_deactivate(self):
+        """ Deactivation of the module. """
+        self.log.debug('Lockin is shutting down.')
         return
-
-    def get_actual_value(self, param):
-        """
-        get the value of a parameter from Lockin.ini
-
-        :param param: str {Amplitude|Frequency|Timeconstant|Rolloff|InputRange|Phase|Harmonic|AmplCaretPos|
-                            FreqCaretPos|FreqCaretPosTail|PhaseCaretPos|DisplayChannel|Channel1Type|Channel1Range|
-                            Channel2Type|Channel2Range|Channel3Type|Channel3Range|Channel4Type|Channel4Range|
-                            InputCouple|InputMode|RefInFlag|TimeConstLoL|RollOffLoL|SyncLoL|Sync0|Phase0}
-        :return: str parameter value
-        """
-        return '1'
 
     def set_input_range(self, r):
         """
@@ -58,7 +50,6 @@ class LockinDummy(Base, LockinInterface):
 
     def set_time_constants(self, tauA=None, tau1=None):
         """
-
         :param: tauA 0.1ms is not supported, tau1 {...|-10} -10: same value as tauA
         :return:
         """
@@ -88,6 +79,10 @@ class LockinDummy(Base, LockinInterface):
         return i
 
     def set_amplitude(self, uac):
+        """
+        :param uac: amplitude
+        :return actual_uac: actual_amplitude
+        """
         return uac
 
     def set_frequency(self, f):
@@ -99,9 +94,16 @@ class LockinDummy(Base, LockinInterface):
         return f
 
     def set_phases(self, phase=None, phase0=None):
+        """
+        :param phase: phase channel A
+        :param phase0: phase channel B
+        """
         return phase, phase0
 
     def set_harmonic(self, i):
+        """
+        :param: i: {1|...|15}
+        """
         return i
 
     def change_reference(self, ref):
@@ -117,5 +119,8 @@ class LockinDummy(Base, LockinInterface):
         return ref
 
     def get_data_lia(self):
+        """
+        random values between -1 and 1
+        """
         return np.random.rand(4)*2-1
 

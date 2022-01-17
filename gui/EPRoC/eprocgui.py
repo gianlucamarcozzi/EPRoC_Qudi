@@ -198,27 +198,6 @@ class EPRoCGui(GUIBase):
             x_label = 'Magnetic field'
             x_units = 'G'
 
-        # Add the display item to the xy and xz ViewWidget, which was defined in the UI file.
-        self._mw.ch1_PlotWidget.addItem(self.ch1_image)
-        self._mw.ch1_PlotWidget.setLabel(axis='left', text='Ch 1')
-        self._mw.ch1_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch1_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
-
-        self._mw.ch2_PlotWidget.addItem(self.ch2_image)
-        self._mw.ch2_PlotWidget.setLabel(axis='left', text='Ch 2')
-        self._mw.ch2_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch2_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
-
-        self._mw.ch3_PlotWidget.addItem(self.ch3_image)
-        self._mw.ch3_PlotWidget.setLabel(axis='left', text='Ch 3')
-        self._mw.ch3_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch3_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
-
-        self._mw.ch4_PlotWidget.addItem(self.ch4_image)
-        self._mw.ch4_PlotWidget.setLabel(axis='left', text='Ch 4')
-        self._mw.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch4_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
-
         # Add the display item to the xy and xz ViewWidget, which was defined in the UI file for the analysis.
 
         self._sd.ch1_PlotWidget.addItem(self.ch1_image)
@@ -240,6 +219,27 @@ class EPRoCGui(GUIBase):
         self._sd.ch4_PlotWidget.setLabel(axis='left', text='Ch 4')
         self._sd.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
         self._sd.ch4_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        # Add the display item to the xy and xz ViewWidget, which was defined in the UI file.
+        self._mw.ch1_PlotWidget.addItem(self.ch1_image)
+        self._mw.ch1_PlotWidget.setLabel(axis='left', text='Ch 1')
+        self._mw.ch1_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._mw.ch1_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._mw.ch2_PlotWidget.addItem(self.ch2_image)
+        self._mw.ch2_PlotWidget.setLabel(axis='left', text='Ch 2')
+        self._mw.ch2_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._mw.ch2_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._mw.ch3_PlotWidget.addItem(self.ch3_image)
+        self._mw.ch3_PlotWidget.setLabel(axis='left', text='Ch 3')
+        self._mw.ch3_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._mw.ch3_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+
+        self._mw.ch4_PlotWidget.addItem(self.ch4_image)
+        self._mw.ch4_PlotWidget.setLabel(axis='left', text='Ch 4')
+        self._mw.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        self._mw.ch4_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
 
         ########################################################################
         #          Configuration of the various display Widgets                #
