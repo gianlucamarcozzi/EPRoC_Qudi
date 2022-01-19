@@ -1034,7 +1034,6 @@ class EPRoCLogic(GenericLogic):
                              (self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps -
                                (self.elapsed_accumulations + self.number_of_accumulations * self.actual_index +
                                  self.number_of_accumulations * self.eproc_plot_x.size * self.elapsed_sweeps))
-            print(self.actual_index)
             if self.elapsed_accumulations == self.number_of_accumulations:
                 # average over accumulations for the current frequency and the current sweep to update the plots
                 new_value = np.mean(self.eproc_raw_data[self.elapsed_sweeps, :, self.actual_index, :],
@@ -1046,9 +1045,7 @@ class EPRoCLogic(GenericLogic):
                 self.elapsed_accumulations = 0
 
                 if self.actual_index == self.eproc_plot_x.size - 1:
-                    print('hello')
                     if self.is_microwave_sweep:
-                        print('hallo')
                         self.ms_actual_frequency, self.ms_mw_power, mode = \
                             self._mw_device.set_cw(self.ms_start, self.ms_mw_power)
                     else:
@@ -1056,12 +1053,10 @@ class EPRoCLogic(GenericLogic):
                     self.elapsed_sweeps += 1
                     self.actual_index = 0
                     if self.elapsed_sweeps == self.number_of_sweeps or self.stopNextSweepRequested:
-                        print('ciao')
                         self.sigNextPosition.emit()
                         self.module_state.unlock()
                 else:
                     if self.is_microwave_sweep:
-                        print('ola')
                         self.ms_actual_frequency, self.ms_mw_power, mode = \
                             self._mw_device.set_cw(self.ms_actual_frequency + self.ms_step, self.ms_mw_power)
                     else:
@@ -1076,7 +1071,6 @@ class EPRoCLogic(GenericLogic):
             return
 
     def _next_position(self):
-        print('z')
         self.save_eproc_data_mapping()
 
         if self.actual_x == self.x_stop:
@@ -1138,7 +1132,6 @@ class EPRoCLogic(GenericLogic):
                 parameters['Stop Field (Hz)'] = str(self.fs_stop)
 
         if not os.path.isfile(os.path.join(filepath, self.tag)):
-            print('c')
             #parameters['Duration Of The Experiment'] = time.strftime('%Hh%Mm%Ss', time.gmtime(self.measurement_duration))
             parameters['Elapsed Sweeps'] = self.elapsed_sweeps
             parameters['Accumulations Per Point'] = self.number_of_accumulations
@@ -1176,7 +1169,6 @@ class EPRoCLogic(GenericLogic):
                                        delimiter='\t')
 
         else:
-            print('a')
 
             parameters['x_position'] = self.actual_x
             parameters['y_position'] = self.actual_y
