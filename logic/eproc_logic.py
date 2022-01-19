@@ -1180,8 +1180,6 @@ class EPRoCLogic(GenericLogic):
                                        filename=self.tag,
                                        fmt='%.6e',
                                        delimiter='\t')
-                #save_file.write('\n x = {0} \t, y = {1} \t, z = {2} \t\n'.format(self.actual_x, self.actual_y, self.actual_z))
-
 
         self.log.info('EPRoC data saved to:\n{0}'.format(filepath))
         return
