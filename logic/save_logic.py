@@ -414,7 +414,7 @@ class SaveLogic(GenericLogic):
         if filename is None:
             filename = timestamp.strftime('%Y%m%d-%H%M-%S' + '_' + filelabel + '.dat')
         if os.path.isfile(os.path.join(filepath, filename)):
-            subprocess.Popen(f'explorer {filepath}')
+            #subprocess.Popen(f'explorer {filepath}')
             self.log.warning('same name as an already existing file')
 
         # Check format specifier.
@@ -493,20 +493,20 @@ class SaveLogic(GenericLogic):
             header += list(data)[0]
             self.save_array_as_text(data=data[identifier_str], filename=filename, filepath=filepath,
                                     fmt=fmt, header=header, delimiter=delimiter, comments='#',
-                                    append=False)
+                                    append=True)
         # write npz file and save parameters in textfile
         elif filetype == 'npz':
             header += str(list(data.keys()))[1:-1]
             np.savez_compressed(filepath + '/' + filename[:-4], **data)
             self.save_array_as_text(data=[], filename=filename[:-4]+'_params.dat', filepath=filepath,
                                     fmt=fmt, header=header, delimiter=delimiter, comments='#',
-                                    append=False)
+                                    append=True)
         else:
             self.log.error('Only saving of data as textfile and npz-file is implemented. Filetype "{0}" is not '
                            'supported yet. Saving as textfile.'.format(filetype))
             self.save_array_as_text(data=data[identifier_str], filename=filename, filepath=filepath,
                                     fmt=fmt, header=header, delimiter=delimiter, comments='#',
-                                    append=False)
+                                    append=True)
 
         #--------------------------------------------------------------------------------------------
         # Save thumbnail figure of plot

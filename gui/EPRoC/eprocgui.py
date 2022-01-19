@@ -111,6 +111,8 @@ class EPRoCGui(GUIBase):
     sigToggleZMotorOff = QtCore.Signal()
     sigMove = QtCore.Signal(str)
     sigXPosition = QtCore.Signal()
+    sigStartEprocMapping = QtCore.Signal(str)
+    sigStopEprocMapping = QtCore.Signal()
 
 
     sigMsParamsChanged = QtCore.Signal(float, float, float, float, float)
@@ -439,6 +441,16 @@ class EPRoCGui(GUIBase):
         #####Signal Motors#####
         #######################
 
+        self._KDC101.action_Play.triggered.connect(self.run_stop_mapping)
+        self._KDC101.save_tag_LineEdit = QtWidgets.QLineEdit(self._KDC101)
+        self._KDC101.save_tag_LineEdit.setMaximumWidth(300)
+        self._KDC101.save_tag_LineEdit.setMinimumWidth(200)
+        self._KDC101.save_tag_LineEdit.setToolTip('Enter a nametag which will be\n'
+                                              'added to the filename.')
+        self._KDC101.toolBar.addWidget(self._KDC101.save_tag_LineEdit)
+
+
+
         # x_motor
         self._KDC101.action_toggle_x_motor.triggered.connect(self.connect_x_motor)
         self._KDC101.x_Home_PushButton.clicked.connect(self.x_home)
@@ -493,6 +505,8 @@ class EPRoCGui(GUIBase):
         self.sigHome.connect(self._eproc_logic.home, QtCore.Qt.QueuedConnection)
         self.sigMotorParamsChanged.connect(self._eproc_logic.set_motor_parameters, QtCore.Qt.QueuedConnection)
         self.sigMove.connect(self._eproc_logic.move, QtCore.Qt.QueuedConnection)
+        self.sigStartEprocMapping.connect(self._eproc_logic.start_eproc_mapping, QtCore.Qt.QueuedConnection)
+        self.sigStopEprocMapping.connect(self._eproc_logic.stop_eproc_mapping, QtCore.Qt.QueuedConnection)
         #self.sigReadPosition.connect(self._eproc_logic.read_position, QtCore.Qt.QueuedConnection)
 
     def on_deactivate(self):
@@ -587,6 +601,8 @@ class EPRoCGui(GUIBase):
         #####motors#####
         ################
 
+        self._KDC101.action_Play.triggered.disconnect()
+
         self._KDC101.x_Home_PushButton.clicked.disconnect()
         self._KDC101.y_Home_PushButton.clicked.disconnect()
         self._KDC101.z_Home_PushButton.clicked.disconnect()
@@ -599,7 +615,7 @@ class EPRoCGui(GUIBase):
         self._KDC101.y_Set_Position_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
         self._KDC101.y_Move_PushButton.clicked.disconnect(self.y_move_to_position)
         self._KDC101.z_Set_Position_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.y_Move_PushButton.clicked.disconnect(self.y_move_to_position)
+        self._KDC101.z_Move_PushButton.clicked.disconnect(self.z_move_to_position)
         self._KDC101.x_Start_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
         self._KDC101.x_Step_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
         self._KDC101.x_Stop_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
@@ -614,8 +630,11 @@ class EPRoCGui(GUIBase):
         self.sigMotorParamsChanged.disconnected()
         self.sigMove.diconnect(self._eproc_logic.move, QtCore.Qt.QueuedConnection)
         self.sigReadPosition.disconnect(self._eproc_logic.read_position, QtCore.Qt.QueuedConnection)
+        self.sigStartEprocMapping.disconnect(self._eproc_logic.start_eproc_mapping, QtCore.Qt.QueuedConnection)
+        self.sigStopEprocMapping.disconnect(self._eproc_logic.stop_eproc_mapping, QtCore.Qt.QueuedConnection)
 
         self._mw.close()
+        self._KDC101.close()
         return 0
 
     def show(self):
@@ -1010,7 +1029,7 @@ class EPRoCGui(GUIBase):
         param = param_dict.get('z_position')
         if param is not None:
             self._KDC101.z_Position_lineEdit.blockSignals(True)
-            self._KDC101.z_Position_lineEdit.setText(str(round(param, 3)))
+            self._KDC101.z_Position_lineEdit.setText(str(round(param, 4)))
             self._KDC101.z_Position_lineEdit.blockSignals(False)
 
 
@@ -1284,3 +1303,26 @@ class EPRoCGui(GUIBase):
              return pos
 
         return '0'
+
+    def run_stop_mapping(self, is_checked):
+        """ Start the mapping of the field """
+        if is_checked:
+            self._mw.action_stop_next_sweep.setEnabled(True)
+            self._mw.action_toggle_cw.setEnabled(False)
+            self._mw.action_toggle_modulation.setEnabled(False)
+            # Set every Box and Button in the gui as not enabled
+            for widget_name in self._mw.__dict__.keys():
+                if widget_name.endswith('Box') or widget_name.endswith('Button'):
+                    widg = getattr(self._mw, widget_name)
+                    widg.setEnabled(False)
+            for widget_name in self._KDC101.__dict__.keys():
+                if widget_name.endswith('Box') or widget_name.endswith('Button'):
+                    widg = getattr(self._KDC101, widget_name)
+                    widg.setEnabled(False)
+
+            filetag = self._KDC101.save_tag_LineEdit.text()
+
+            self.sigStartEprocMapping.emit(filetag)
+        else:
+            self.sigStopEprocMapping.emit()
+        return

@@ -26,7 +26,7 @@ class MotorSerialKDC101(Base, MotorInterface):
     #COM_Port = 'COM13'  # Change to preferred
     Channel = 1  # Channel is always 1 for a K Cube/T Cube
 
-    Device_Unit_SF = 34555.  # pg 34 of protocal PDF (as of Issue 23)
+    Device_Unit_SF = 34555.  # pg 34 of protocol PDF (as of Issue 23)
     Device_Unit_Velocity = 772981
     Device_Unit_Acceleration = 263
     destination = 0x50  # Destination byte; 0x50 for T Cube/K Cube, USB controllers
@@ -87,6 +87,9 @@ class MotorSerialKDC101(Base, MotorInterface):
         Homed = pack('<H', 0x0444)
         while Rx != Homed:
             Rx = self.KDC001.read(2)
+            print(Rx)
+            print(Homed)
+            time.sleep(0.1)
         print('Stage Homed')
         self.KDC001.flushInput()
         self.KDC001.flushOutput()
@@ -142,8 +145,17 @@ class MotorSerialKDC101(Base, MotorInterface):
         # Confirm stage completed move before advancing; MGMSG_MOT_MOVE_COMPLETED
         Rx = ''
         Moved = pack('<H', 0x0464)
+        start = time.time()
+
         while Rx != Moved:
-            Rx = self.KDC001.read(2)
+            if time.time()-start < 61:
+                Rx = self.KDC001.read(2)
+                time.sleep(0.1)
+
+            else:
+                self.move(pos)
+                break
+
         print('Move Complete')
         self.KDC001.flushInput()
         self.KDC001.flushOutput()
@@ -159,6 +171,7 @@ class MotorSerialKDC101(Base, MotorInterface):
         self.header, self.chan_dent, self.position_dUnits = unpack('<6sHI', self.KDC001.read(12))
 
         getpos = self.position_dUnits / float(self.Device_Unit_SF)
+
         #print('Position: %.4f mm' % (getpos))
 
         return getpos

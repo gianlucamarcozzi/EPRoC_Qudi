@@ -39,10 +39,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QLabel" name="label_4">
@@ -128,10 +131,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="x_Step_doubleSpinBox">
@@ -147,10 +153,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="x_Stop_doubleSpinBox">
@@ -166,10 +175,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QLabel" name="label_8">
@@ -333,10 +345,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="y_Stop_doubleSpinBox">
@@ -352,10 +367,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="y_Start_doubleSpinBox">
@@ -371,10 +389,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="y_Set_Position_doubleSpinBox">
@@ -390,10 +411,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QLineEdit" name="y_Position_lineEdit">
@@ -531,10 +555,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="z_Set_Position_doubleSpinBox">
@@ -550,10 +577,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QLineEdit" name="z_Position_lineEdit">
@@ -582,10 +612,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="z_Start_doubleSpinBox">
@@ -601,10 +634,13 @@
       <string>mm</string>
      </property>
      <property name="decimals">
-      <number>6</number>
+      <number>4</number>
      </property>
      <property name="maximum">
-      <double>25.000000000000000</double>
+      <double>24.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
      </property>
     </widget>
     <widget class="QPushButton" name="z_Move_PushButton">
@@ -645,6 +681,8 @@
    <addaction name="action_toggle_x_motor"/>
    <addaction name="action_toggle_y_motor"/>
    <addaction name="action_toggle_z_motor"/>
+   <addaction name="separator"/>
+   <addaction name="action_Play"/>
   </widget>
   <action name="action_toggle_x_motor">
    <property name="checkable">
@@ -686,6 +724,19 @@
    </property>
    <property name="toolTip">
     <string>toggle_z_motor</string>
+   </property>
+  </action>
+  <action name="action_Play">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/scan-xy-start.png</normaloff>
+     <normalon>../../artwork/icons/qudiTheme/22x22/stop-scan.png</normalon>../../artwork/icons/qudiTheme/22x22/scan-xy-start.png</iconset>
+   </property>
+   <property name="text">
+    <string>Play</string>
    </property>
   </action>
  </widget>
