@@ -20,6 +20,7 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
+from PyQt5.QtWidgets import QFileDialog
 from qtpy import QtCore
 from collections import OrderedDict
 from interface.microwave_interface import MicrowaveMode
@@ -94,6 +95,8 @@ class EPRoCLogic(GenericLogic):
     ref_freq = StatusVar('ref_freq', 1000000)
     ref_mode = StatusVar('ref_mode', 'HBAN')
     ref_deviation = StatusVar('ref_deviation', 1000)
+
+    frequency_multiplier = StatusVar('frequency_multiplier', 32)
 
     psb_voltage_outp1 = StatusVar('psb_voltage_oup2', 2)
     psb_voltage_outp2 = StatusVar('psb_voltage_outp2', 2)
@@ -404,6 +407,16 @@ class EPRoCLogic(GenericLogic):
         self.sigParameterUpdated.emit(param_dict)
         return self.number_of_sweeps, self.number_of_accumulations
 
+    def set_frequency_multiplier(self, multiplier):
+        if self.module_state() != 'locked':
+            self.frequency_multiplier = multiplier
+        else:
+            self.log.warning('set_frequency_multiplier failed. Logic is locked.')
+
+        param_dict = {'frequency_multiplier', self.frequency_multiplier}
+        self.sigParameterUpdated.emit(param_dict)
+        return self.frequency_multiplier
+
     def psb_on(self):
         if self.module_state() != 'locked':
             status = self._power_supply_board.output_on()
@@ -614,13 +627,14 @@ class EPRoCLogic(GenericLogic):
                 self.module_state.unlock()
                 return
 
-            time.sleep(self.lia_waiting_time)
+            # Between two accumulations on the same point wait for an arbitrary value of tau/10
+            time.sleep(self.lia_waiting_time/self.lia_waiting_time_factor/10)
             self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
                                 :] = self._lockin_device.get_data_lia()[:4] #this is for 4 channels
             # sometimes the lia returns values that are really close to zero and not the real values.
             # the measurement is performed again in that case
             for i in range(len(self.eproc_raw_data[0, 0, 0, :])):
-                while self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index, i] < 1e-7:
+                while abs(self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index, i]) < 1e-7:
                     time.sleep(0.01)
                     self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
                                         :] = self._lockin_device.get_data_lia()[:4]  # this is for 4 channels
@@ -631,7 +645,6 @@ class EPRoCLogic(GenericLogic):
                              (self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps -
                                (self.elapsed_accumulations + self.number_of_accumulations * self.actual_index +
                                  self.number_of_accumulations * self.eproc_plot_x.size * self.elapsed_sweeps))
-
             if self.elapsed_accumulations == self.number_of_accumulations:
                 # average over accumulations for the current frequency and the current sweep to update the plots
                 new_value = np.mean(self.eproc_raw_data[self.elapsed_sweeps, :, self.actual_index, :],
@@ -659,6 +672,8 @@ class EPRoCLogic(GenericLogic):
                     else:
                         self.fs_actual_field = self._magnet.set_central_field(self.fs_actual_field + self.fs_step)
                     self.actual_index += 1
+                    time.sleep(self.lia_waiting_time) # Wait for a full waiting time only when the accumulations on the
+                                                      # same point are finished
 
             self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
             self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
@@ -695,7 +710,7 @@ class EPRoCLogic(GenericLogic):
 
         # Raw data, only the average on the accumulations was performed
         eproc_raw_data_list = [self.eproc_plot_x]
-        for channel in range(4):
+        for channel in range(len(self.eproc_raw_data[0, 0, 0, :])):
             # fix: this works if the sweep is not finished, otherwise it doesnt work!!
             if self.elapsed_sweeps == self.number_of_sweeps:
                 for sweep in range(self.elapsed_sweeps):
@@ -732,7 +747,7 @@ class EPRoCLogic(GenericLogic):
             parameters['Stop Frequency (Hz)'] = str(self.ms_stop)
         else:
             eproc_data['Field\t\tChannel 1\t\tChannel 2\t\tChannel 3\t\tChannel 4'] = np.array(eproc_data_list).transpose()
-            eproc_raw_data['Column 0: frequency\n'
+            eproc_raw_data['Column 0: field\n'
                            'From column 1 to column {0}: channel 1, sweep 1 to sweep {0}\n'
                            'From column {1} to column {2}: channel 2, sweep 1 to sweep {0}\n'
                            'From column {3} to column {4}: channel 3, sweep 1 to sweep {0}\n'
@@ -744,13 +759,15 @@ class EPRoCLogic(GenericLogic):
             # Saving parameters as str for readability
             parameters['Microwave Frequency (Hz)'] = str(self.fs_mw_frequency)
             parameters['Microwave Power (dBm)'] = str(self.fs_mw_power)
-            parameters['Start Field (Hz)'] = str(self.fs_start)
-            parameters['Step Size (Hz)'] = str(self.fs_step)
-            parameters['Stop Field (Hz)'] = str(self.fs_stop)
+            parameters['Start Field (G)'] = str(self.fs_start)
+            parameters['Step Size (G)'] = str(self.fs_step)
+            parameters['Stop Field (G)'] = str(self.fs_stop)
 
         parameters['Duration Of The Experiment'] = time.strftime('%Hh%Mm%Ss', time.gmtime(self.measurement_duration))
         parameters['Elapsed Sweeps'] = self.elapsed_sweeps
         parameters['Accumulations Per Point'] = self.number_of_accumulations
+
+        parameters['Frequency Multiplier'] = self.frequency_multiplier
 
         parameters['Lockin Input Range (V)'] = self.lia_range
         parameters['Lockin Amplitude (V)'] = str(self.lia_uac)

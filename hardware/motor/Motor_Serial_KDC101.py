@@ -19,7 +19,7 @@ class MotorSerialKDC101(Base, MotorInterface):
     # baud_rate = 115200
     data_bits = 8
     stop_bits = 1
-    Parity = serial.PARITY_NONE
+    # Parity = serial.PARITY_NONE
 
     # Controller's Port and Channel
 
@@ -45,7 +45,7 @@ class MotorSerialKDC101(Base, MotorInterface):
         self.baud_rate = 115200
         self.data_bits = 8
         self.stop_bits = 1
-        self.Parity = serial.PARITY_NONE
+        # self.Parity = serial.PARITY_NONE
         #self.KDC001 = serial.Serial(port=self._address, baudrate=self.baud_rate, bytesize=self.data_bits,
         #                            parity=self.Parity, stopbits=self.stop_bits, timeout=0.1)
 
