@@ -65,14 +65,14 @@ class EPRoCAnalysis(QtWidgets.QMainWindow):
         super(EPRoCAnalysis, self).__init__()
         uic.loadUi(ui_file, self)
 
-class EPRoCPsbDialog(QtWidgets.QDialog):
+class EPRoCCheckDevicesDialog(QtWidgets.QDialog):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'ui_eproc_psb.ui')
+        ui_file = os.path.join(this_dir, 'ui_eproc_check_devices.ui')
 
         # Load it
-        super(EPRoCAnalysis, self).__init__()
+        super(EPRoCCheckDevicesDialog, self).__init__()
         uic.loadUi(ui_file, self)
 
 class EPRoCPowerSupplyOnDialog(QtWidgets.QDialog):
@@ -84,6 +84,7 @@ class EPRoCPowerSupplyOnDialog(QtWidgets.QDialog):
         # Load it
         super(EPRoCPowerSupplyOnDialog, self).__init__()
         uic.loadUi(ui_file, self)
+
 
 class EPRoCPowerSupplyOffDialog(QtWidgets.QDialog):
     def __init__(self):
@@ -173,6 +174,7 @@ class EPRoCGui(GUIBase):
         # Use the inherited class 'Ui_EPRoCGuiUI' to create now the GUI element:
         self._mw = EPRoCMainWindow()
         self._sd = EPRoCAnalysis()
+        self._checkdevdialog = EPRoCCheckDevicesDialog()
         self._psondialog = EPRoCPowerSupplyOnDialog()
         self._psoffdialog = EPRoCPowerSupplyOffDialog()
         self._KDC101 = EPRoCMotorizedStages()
@@ -351,7 +353,7 @@ class EPRoCGui(GUIBase):
         self._mw.ref_shape_ComboBox.setCurrentText(self._eproc_logic.ref_shape)
         self._mw.ref_frequency_DoubleSpinBox.setValue(self._eproc_logic.ref_freq)
         self._mw.ref_deviation_DoubleSpinBox.setValue(self._eproc_logic.ref_deviation)
-        self._mw.ref_deviation_LineEdit.setText(self.mw_to_field(self._eproc_logic.ref_deviation))
+        self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(self._eproc_logic.ref_deviation))
         self._mw.ref_deviation_ppHz_LineEdit.setText(
         self.multiplied_mw(2 * self._eproc_logic.ref_deviation))  # factor 2 to have pp
         self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(2 * self._eproc_logic.ref_deviation))
@@ -460,6 +462,7 @@ class EPRoCGui(GUIBase):
         self._mw.ref_RadioButton.setChecked(True)
         self._mw.lia_frequency_DoubleSpinBox.setEnabled(False)
         if self._eproc_logic.is_microwave_sweep:
+            # Disable everything in the fs Dockwidget except for the RadioButton
             self._mw.ms_RadioButton.setChecked(True)
             for widget_name in self._mw.__dict__.keys():
                 if widget_name.startswith('fs_'):
@@ -468,17 +471,19 @@ class EPRoCGui(GUIBase):
             self._mw.fs_RadioButton.setEnabled(True)
 
         else:
+            # Disable everything in the fs Dockwidget except for the RadioButton
             self._mw.fs_RadioButton.setChecked(True)
             for widget_name in self._mw.__dict__.keys():
                 if widget_name.startswith('ms_'):
                     widg = getattr(self._mw, widget_name)
                     widg.setEnabled(False)
-            self._mw.fs_RadioButton.setEnabled(True)
+            self._mw.ms_RadioButton.setEnabled(True)
 
         # connect settings signals
         self._mw.action_Analysis.triggered.connect(self._menu_analysis)
         self._mw.action_Motorized_Stages.triggered.connect(self._menu_motorized_stages)
 
+        self._checkdevdialog.accepted.connect(self.check_devices_accepted)
         self._psondialog.accepted.connect(self.power_supply_on_accepted)
         self._psondialog.rejected.connect(self.power_supply_on_rejected)
         self._psoffdialog.accepted.connect(self.power_supply_off_accepted)
@@ -565,9 +570,9 @@ class EPRoCGui(GUIBase):
         @return int: error code (0:OK, -1:error)
         """
         # Disconnect signals
-        self._sd.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.disconnect()
         self._sd.accepted.disconnect()
         self._sd.rejected.disconnect()
+        self._checdevdialog.accept.disconnect()
         self._psondialog.accepted.disconnect()
         self._psoffdialog.accepted.disconnect()
         self._eproc_logic.sigParameterUpdated.disconnect()
@@ -752,21 +757,45 @@ class EPRoCGui(GUIBase):
             self.sigToggleModulationOff.emit()
         return
 
+    def check_devices_accepted(self):
+        self._mw.action_stop_next_sweep.setEnabled(True)
+        self._mw.action_toggle_cw.setEnabled(False)
+        self._mw.action_toggle_modulation.setEnabled(False)
+        # Set every Box and Button in the gui as not enabled
+        for widget_name in self._mw.__dict__.keys():
+            if widget_name.endswith('Box') or widget_name.endswith('Button'):
+                widg = getattr(self._mw, widget_name)
+                widg.setEnabled(False)
+        self.sigStartEproc.emit()
+        return
+
     def run_stop_scan(self, is_checked):
         """ Manages what happens if eproc scan is started/stopped. """
         if is_checked:
-            self._mw.action_stop_next_sweep.setEnabled(True)
-            self._mw.action_toggle_cw.setEnabled(False)
-            self._mw.action_toggle_modulation.setEnabled(False)
-            # Set every Box and Button in the gui as not enabled
-            for widget_name in self._mw.__dict__.keys():
-                if widget_name.endswith('Box') or widget_name.endswith('Button'):
-                    widg = getattr(self._mw, widget_name)
-                    widg.setEnabled(False)
-            self.sigStartEproc.emit()
+            # Control the status of power supplies, RF and LF
+            if (self._mw.action_toggle_cw.isChecked()
+                and self._mw.action_toggle_modulation.isChecked()
+                and self._mw.power_supply_board_RadioButton.isChecked()
+                and self._mw.power_supply_amplifier_RadioButton.isChecked()):
+                # If everything is on: start eproc
+                self._checkdevdialog.accepted()
+            else:
+                # Possibility to start the experiment even if some devices are off
+                if not self._mw.action_toggle_cw.isChecked():
+                    self._checkdevdialog.mw_Label.setText('off')
+                if not self._mw.action_toggle_modulation.isChecked():
+                    self._checkdevdialog.ref_Label.setText('off')
+                if not self._mw.power_supply_board_RadioButton.isChecked():
+                    self._checkdevdialog.psb_Label.setText('off')
+                if not self._mw.power_supply_amplifier_RadioButton.isChecked():
+                    self._checkdevdialog.psa_Label.setText('off')
+                self._checkdevdialog.show()
         else:
+            # Stop eproc
+            self._mw.action_stop_next_sweep.setEnabled(False)
             self._mw.action_toggle_cw.setEnabled(True)
             self._mw.action_toggle_modulation.setEnabled(True)
+            # Set every Box and Button in the gui as not enabled
             for widget_name in self._mw.__dict__.keys():
                 if widget_name.endswith('Box') or widget_name.endswith('Button'):
                     widg = getattr(self._mw, widget_name)
@@ -1105,8 +1134,6 @@ class EPRoCGui(GUIBase):
             self._KDC101.z_Position_lineEdit.blockSignals(True)
             self._KDC101.z_Position_lineEdit.setText(str(round(param, 4)))
             self._KDC101.z_Position_lineEdit.blockSignals(False)
-
-
         return
 
     def change_fs_params(self):
@@ -1150,63 +1177,41 @@ class EPRoCGui(GUIBase):
     def on_off_sweep(self):
         """Interchange between microwave and field sweep"""
         if self._mw.ms_RadioButton.isChecked():
-            self._eproc_logic.is_microwave_sweep = True
-            self._mw.ms_field_DoubleSpinBox.setEnabled(True)
-            self._mw.ms_mw_power_DoubleSpinBox.setEnabled(True)
-            self._mw.ms_start_DoubleSpinBox.setEnabled(True)
-            self._mw.ms_step_DoubleSpinBox.setEnabled(True)
-            self._mw.ms_stop_DoubleSpinBox.setEnabled(True)
-            self._mw.ms_start_LineEdit.setEnabled(True)
-            self._mw.ms_step_LineEdit.setEnabled(True)
-            self._mw.ms_stop_LineEdit.setEnabled(True)
-            self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_mw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_start_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_step_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_stop_DoubleSpinBox.setEnabled(False)
-            self._mw.fs_start_LineEdit.setEnabled(False)
-            self._mw.fs_step_LineEdit.setEnabled(False)
-            self._mw.fs_stop_LineEdit.setEnabled(False)
+            widg_value = True
             self.change_ms_params()
         else:
-            self._eproc_logic.is_microwave_sweep = False
-            self._mw.fs_mw_frequency_DoubleSpinBox.setEnabled(True)
-            self._mw.fs_mw_power_DoubleSpinBox.setEnabled(True)
-            self._mw.fs_start_DoubleSpinBox.setEnabled(True)
-            self._mw.fs_step_DoubleSpinBox.setEnabled(True)
-            self._mw.fs_stop_DoubleSpinBox.setEnabled(True)
-            self._mw.fs_start_LineEdit.setEnabled(True)
-            self._mw.fs_step_LineEdit.setEnabled(True)
-            self._mw.fs_stop_LineEdit.setEnabled(True)
-            self._mw.ms_field_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_mw_power_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_start_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_step_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_stop_DoubleSpinBox.setEnabled(False)
-            self._mw.ms_start_LineEdit.setEnabled(False)
-            self._mw.ms_step_LineEdit.setEnabled(False)
-            self._mw.ms_stop_LineEdit.setEnabled(False)
+            widg_value = False
             self.change_fs_params()
+        self._eproc_logic.is_microwave_sweep = widg_value
+
+        for widget_name in self._mw.__dict__.keys():
+            if widget_name.startswith('fs_'):
+                widg = getattr(self._mw, widget_name)
+                widg.setEnabled(not widg_value)
+        for widget_name in self._mw.__dict__.keys():
+            if widget_name.startswith('ms_'):
+                widg = getattr(self._mw, widget_name)
+                widg.setEnabled(widg_value)
+        self._mw.fs_RadioButton.setEnabled(True)
+        self._mw.ms_RadioButton.setEnabled(True)
         return
 
     def on_off_external_reference(self):
         """Select between internal and external reference of the lockin"""
         if self._mw.ref_RadioButton.isChecked():
-            self._eproc_logic.is_external_reference = True
-            self._mw.lia_frequency_DoubleSpinBox.setEnabled(False)
-            self._mw.ref_shape_ComboBox.setEnabled(True)
-            self._mw.ref_frequency_DoubleSpinBox.setEnabled(True)
-            self._mw.ref_deviation_DoubleSpinBox.setEnabled(True)
-            self._mw.ref_mode_ComboBox.setEnabled(True)
+            widg_value = True
             self.sigExtRefOn.emit()
         else:
-            self._eproc_logic.is_external_reference = False
-            self._mw.lia_frequency_DoubleSpinBox.setEnabled(True)
-            self._mw.ref_shape_ComboBox.setEnabled(False)
-            self._mw.ref_frequency_DoubleSpinBox.setEnabled(False)
-            self._mw.ref_deviation_DoubleSpinBox.setEnabled(False)
-            self._mw.ref_mode_ComboBox.setEnabled(False)
+            widg_value = False
             self.sigExtRefOff.emit()
+
+        self._eproc_logic.is_external_reference = widg_value
+        self._mw.lia_frequency_DoubleSpinBox.setEnabled(not widg_value)
+        for widget_name in self._mw.__dict__.keys():
+            if widget_name.startswith('ref_'):
+                widg = getattr(self._mw, widget_name)
+                widg.setEnabled(widg_value)
+        self._mw.ref_RadioButton.setEnabled(True)
         return
 
     def change_ref_params(self):
