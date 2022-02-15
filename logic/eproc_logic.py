@@ -628,7 +628,7 @@ class EPRoCLogic(GenericLogic):
                 return
 
             # Between two accumulations on the same point wait for an arbitrary value of tau/10
-            time.sleep(self.lia_waiting_time/self.lia_waiting_time_factor/10)
+            time.sleep(self.lia_waiting_time)
             self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
                                 :] = self._lockin_device.get_data_lia()[:4] #this is for 4 channels
             # sometimes the lia returns values that are really close to zero and not the real values.
@@ -672,8 +672,6 @@ class EPRoCLogic(GenericLogic):
                     else:
                         self.fs_actual_field = self._magnet.set_central_field(self.fs_actual_field + self.fs_step)
                     self.actual_index += 1
-                    time.sleep(self.lia_waiting_time) # Wait for a full waiting time only when the accumulations on the
-                                                      # same point are finished
 
             self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
             self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
