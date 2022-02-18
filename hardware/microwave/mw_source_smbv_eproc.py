@@ -426,7 +426,8 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         if not is_lfo_running:
             self._command_wait(':LFO ON')
 
-        while not is_fm_running or not is_lfo_running:
+        # while not is_fm_running or not is_lfo_running:
+        while not is_lfo_running:
             time.sleep(0.2)
             is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
             is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
@@ -451,7 +452,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
         return is_fm_running, is_lfo_running
 
-    def set_reference(self, shape = None, freq = None, mode=None, dev=None):
+    def set_reference(self, shape = None, freq = None, mode=None, dev=None, volt = None):
         '''
         @param float deviation:
         @param str (or int) source: {EXT1|NOISe|LF1|LF2|INTernal|EXTernal}
@@ -488,6 +489,9 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         # Set modulation central frequency
         if freq is not None:
             self._command_wait(':LFO:FREQ {0:f}'.format(freq))
+
+        if volt is not None:
+            self._command_wait(':LFO:VOLT {0:f}'.format(volt))
 
         # Set the value of the deviation
         if dev is not None:

@@ -1205,21 +1205,24 @@ class EPRoCLogic(GenericLogic):
 
         self.rf_power = -18
 
+        self.lf_volt = 0.
+
         self._mw_device.set_cw(self.rf_freq, self.rf_power)
-        self._mw_device.set_reference(freq = self.lf_freq)
+        self._mw_device.set_reference(freq = self.lf_freq, volt = self.lf_volt)
         self._mw_device.cw_on()
         self._mw_device.reference_on()
-        self._lockin_device.set_input_range('10')
+        # self._lockin_device.set_input_range('10')
 
     def start_liak(self):
-        N = 400
+        N = 100
         self.data = np.zeros((N, 5))
         for i in range(0, N, 1):
-            self.rf_power = round(-18 - i/10, 2)
-            self._mw_device.set_cw(self.rf_freq, self.rf_power)
+            self.lf_volt = round(i/1000, 4)
+            self._mw_device.set_reference(volt=self.lf_volt)
 
-            self.data[i, 0] = self.rf_power
+            time.sleep(0.06)
+            self.data[i, 0] = self.lf_volt
             self.data[i, 1:] = self._lockin_device.get_data_lia()[:4]
 
     def save_liak(self, name):
-        np.savetxt('d:\Profile\qse\Desktop\lia_constant/' + name, self.data)
+        np.savetxt('C:/Users/esrlab/Desktop/Gianluca/liak/' + name, self.data)
