@@ -1212,13 +1212,14 @@ class EPRoCLogic(GenericLogic):
         self._lockin_device.set_input_range('10')
 
     def start_liak(self):
-        self.data = np.zeros((43, 5))
-        for i in range(18, 60, -1):
-            self.rf_power = -i
+        N = 400
+        self.data = np.zeros((N, 5))
+        for i in range(0, N, 1):
+            self.rf_power = round(-18 - i/10, 2)
             self._mw_device.set_cw(self.rf_freq, self.rf_power)
 
-            self.data[- 18 + i, 0] = self.rf.power
-            self.data[-18 + i, 1:] = self._lockin_device.get_data_lia()[:4]
+            self.data[i, 0] = self.rf_power
+            self.data[i, 1:] = self._lockin_device.get_data_lia()[:4]
 
     def save_liak(self, name):
-        np.savetxt('' + name, self.data)
+        np.savetxt('d:\Profile\qse\Desktop\lia_constant/' + name, self.data)
