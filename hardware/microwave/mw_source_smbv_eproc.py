@@ -421,8 +421,8 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
 
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
         is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
-        if not is_fm_running:
-            self._command_wait(':FM1:STAT ON')
+        # if not is_fm_running:
+        #     self._command_wait(':FM1:STAT ON')
         if not is_lfo_running:
             self._command_wait(':LFO ON')
 

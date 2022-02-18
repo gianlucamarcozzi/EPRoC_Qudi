@@ -628,7 +628,7 @@ class EPRoCLogic(GenericLogic):
                 return
 
             # Between two accumulations on the same point wait for an arbitrary value of tau/10
-            time.sleep(self.lia_waiting_time/self.lia_waiting_time_factor/10)
+            time.sleep(self.lia_waiting_time)
             self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
                                 :] = self._lockin_device.get_data_lia()[:4] #this is for 4 channels
             # sometimes the lia returns values that are really close to zero and not the real values.
@@ -672,8 +672,6 @@ class EPRoCLogic(GenericLogic):
                     else:
                         self.fs_actual_field = self._magnet.set_central_field(self.fs_actual_field + self.fs_step)
                     self.actual_index += 1
-                    time.sleep(self.lia_waiting_time) # Wait for a full waiting time only when the accumulations on the
-                                                      # same point are finished
 
             self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
             self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
@@ -690,7 +688,7 @@ class EPRoCLogic(GenericLogic):
     def get_time_constants(self):
         return self._lockin_device.tau_values
 
-    def save_eproc_data(self, tag=None):
+    def save_eproc_data(self, filepath=None, tag=None):
         """ Saves the current EPRoC data to a file."""
         timestamp = datetime.datetime.now()
         filepath = self._save_logic.get_path_for_module(module_name='EPRoC')
@@ -1200,3 +1198,27 @@ class EPRoCLogic(GenericLogic):
 
         self.log.info('EPRoC data saved to:\n{0}'.format(filepath))
         return
+
+    def init_liak(self):
+        self.rf_freq = 150000
+        self.lf_freq = 150000
+
+        self.rf_power = -18
+
+        self._mw_device.set_cw(self.rf_freq, self.rf_power)
+        self._mw_device.set_reference(freq = self.lf_freq)
+        self._mw_device.cw_on()
+        self._mw_device.reference_on()
+        self._lockin_device.set_input_range('10')
+
+    def start_liak(self):
+        self.data = np.zeros((43, 5))
+        for i in range(18, 60, -1):
+            self.rf_power = -i
+            self._mw_device.set_cw(self.rf_freq, self.rf_power)
+
+            self.data[- 18 + i, 0] = self.rf.power
+            self.data[-18 + i, 1:] = self._lockin_device.get_data_lia()[:4]
+
+    def save_liak(self, name):
+        np.savetxt('' + name, self.data)
