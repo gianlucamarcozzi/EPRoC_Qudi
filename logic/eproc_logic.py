@@ -413,7 +413,7 @@ class EPRoCLogic(GenericLogic):
         else:
             self.log.warning('set_frequency_multiplier failed. Logic is locked.')
 
-        param_dict = {'frequency_multiplier', self.frequency_multiplier}
+        param_dict = {'frequency_multiplier': self.frequency_multiplier}
         self.sigParameterUpdated.emit(param_dict)
         return self.frequency_multiplier
 

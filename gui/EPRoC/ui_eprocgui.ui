@@ -658,7 +658,7 @@
            <number>6</number>
           </property>
           <property name="maximum">
-           <double>1000000000.000000000000000</double>
+           <double>6000000000.000000000000000</double>
           </property>
           <property name="singleStep">
            <double>0.010000000000000</double>
@@ -680,7 +680,7 @@
            <number>6</number>
           </property>
           <property name="maximum">
-           <double>1000000000.000000000000000</double>
+           <double>6000000000.000000000000000</double>
           </property>
           <property name="singleStep">
            <double>0.010000000000000</double>
@@ -709,7 +709,7 @@
            <number>6</number>
           </property>
           <property name="maximum">
-           <double>1000000000.000000000000000</double>
+           <double>6000000000.000000000000000</double>
           </property>
           <property name="singleStep">
            <double>0.010000000000000</double>
@@ -1071,6 +1071,11 @@
      </item>
      <item row="0" column="4">
       <widget class="QComboBox" name="frequency_multiplier_ComboBox">
+       <item>
+        <property name="text">
+         <string>4</string>
+        </property>
+       </item>
        <item>
         <property name="text">
          <string>32</string>
