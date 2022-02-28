@@ -672,8 +672,6 @@ class EPRoCLogic(GenericLogic):
                     else:
                         self.fs_actual_field = self._magnet.set_central_field(self.fs_actual_field + self.fs_step)
                     self.actual_index += 1
-                    time.sleep(self.lia_waiting_time) # Wait for a full waiting time only when the accumulations on the
-                                                      # same point are finished
 
             self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
             self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
