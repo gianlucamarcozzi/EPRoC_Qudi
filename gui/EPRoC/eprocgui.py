@@ -112,6 +112,7 @@ class EPRoCMotorizedStages(QtWidgets.QMainWindow):
 
 
 class EPRoCGui(GUIBase):
+
     """
     This is the GUI Class for EPRoC measurements
     """
@@ -742,7 +743,7 @@ class EPRoCGui(GUIBase):
 
     # all the procedure should be checked comparing with odmrgui: set enabled false and then enabled through update status? investigate!!
     def toggle_cw(self, is_checked):
-        """Toggle cw before starting the measurement"""
+        """Toggle cw before starting the measurement."""
         if is_checked:
             self.sigToggleCwOn.emit()
         else:
@@ -750,7 +751,7 @@ class EPRoCGui(GUIBase):
         return
 
     def toggle_modulation(self, is_checked):
-        """Toggle the modulation before starting the measurement"""
+        """Toggle the modulation before starting the measurement."""
         if is_checked:
             self.sigToggleModulationOn.emit()
         else:

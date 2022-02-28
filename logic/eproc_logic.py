@@ -541,11 +541,23 @@ class EPRoCLogic(GenericLogic):
         return mode, is_running
 
     def modulation_on(self):
-        self._mw_device.reference_on()
+        """ Switch on the reference LF signal and the frequency modulation."""
+        is_running = self._mw_device.fm_on()
+        if not is_running:
+            self.log.error('Failed to switch on modulation.')
+        is_running = self._mw_device.lf_on()
+        if not is_running:
+            self.log.error('Failed to switch on LF reference.')
         return
 
     def modulation_off(self):
-        self._mw_device.reference_off()
+        """ Switch on the reference LF signal and the frequency modulation."""
+        is_running = self._mw_device.fm_off()
+        if is_running:
+            self.log.error('Failed to switch off modulation.')
+        is_running = self._mw_device.lf_off()
+        if is_running:
+            self.log.error('Failed to switch off LF reference.')
         return
 
     def start_eproc(self):

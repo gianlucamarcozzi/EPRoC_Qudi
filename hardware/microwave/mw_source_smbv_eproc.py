@@ -411,47 +411,46 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
 
         return 0
     '''
-    def reference_on(self):
-        """
-        Turn on the modulation frequency o
-        Both the frequency modulation and the lf output need to be activated, in order to have an output signal which
-        is modulated.
-        How can I understand in a smart way if what is to be set is the channel FM1 or FM2?
-        """
+    def lf_on(self):
+        """Turn on the low frequency output."""
+        is_lf_running = bool(float(int(self._connection.query(':LFO?'))))
+        if not is_lf_running:
+            self._command_wait(':LFO ON')
+        while not is_lf_running:
+            time.sleep(0.2)
+            is_lf_running = bool(float(int(self._connection.query(':LFO?'))))
+        return is_lf_running
 
+    def lf_off(self):
+        """Turn off the low frequency output."""
+        is_lf_running = bool(float(int(self._connection.query(':LFO?'))))
+        if is_lf_running:
+            self._command_wait(':LFO OFF')
+        while is_lf_running:
+            time.sleep(0.2)
+            is_lf_running = bool(float(int(self._connection.query(':LFO?'))))
+        return is_lf_running
+
+    def fm_on(self):
+        """ Turn on the frequency modulation."""
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
         if not is_fm_running:
             self._command_wait(':FM1:STAT ON')
-        if not is_lfo_running:
-            self._command_wait(':LFO ON')
-
-        while not is_fm_running or not is_lfo_running:
+        while not is_fm_running:
             time.sleep(0.2)
             is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-            is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
-        return is_fm_running, is_lfo_running
+        return is_fm_running
 
-    def reference_off(self):
+    def fm_off(self):
         is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
         if is_fm_running:
             self._command_wait(':FM1:STAT OFF')
-        if is_lfo_running:
-            self._command_wait(':LFO OFF')
-
-        while is_fm_running or is_lfo_running:
+        while is_fm_running:
             time.sleep(0.2)
             is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-            is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
-        return is_fm_running, is_lfo_running
+        return is_fm_running
 
-    def get_reference_status(self):
-        is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        is_lfo_running = bool(float(int(self._connection.query(':LFO?'))))
-        return is_fm_running, is_lfo_running
-
-    def set_reference(self, shape = None, freq = None, mode=None, dev=None):
+    def set_reference(self, shape=None, freq = None, mode=None, dev=None):
         '''
         @param float deviation:
         @param str (or int) source: {EXT1|NOISe|LF1|LF2|INTernal|EXTernal}
