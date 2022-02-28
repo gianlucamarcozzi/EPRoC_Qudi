@@ -413,7 +413,7 @@ class EPRoCLogic(GenericLogic):
         else:
             self.log.warning('set_frequency_multiplier failed. Logic is locked.')
 
-        param_dict = {'frequency_multiplier', self.frequency_multiplier}
+        param_dict = {'frequency_multiplier': self.frequency_multiplier}
         self.sigParameterUpdated.emit(param_dict)
         return self.frequency_multiplier
 
@@ -628,7 +628,7 @@ class EPRoCLogic(GenericLogic):
                 return
 
             # Between two accumulations on the same point wait for an arbitrary value of tau/10
-            time.sleep(self.lia_waiting_time/self.lia_waiting_time_factor/10)
+            time.sleep(self.lia_waiting_time)
             self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
                                 :] = self._lockin_device.get_data_lia()[:4] #this is for 4 channels
             # sometimes the lia returns values that are really close to zero and not the real values.

@@ -1395,7 +1395,7 @@ class EPRoCGui(GUIBase):
         return str(freq * self._eproc_logic.frequency_multiplier / 1000000) + ' MHz'
 
     def mw_to_field(self, freq):
-        return str(round(freq * self._eproc_logic.frequency_multiplier * 1e-6 / 2.8, 2)) + ' G'
+        return str(round(freq * self._eproc_logic.frequency_multiplier * 1e-6 / 2.8, 5)) + ' G'
 
     def x_home(self):
         self.sigHome.emit('x')
