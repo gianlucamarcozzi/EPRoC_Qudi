@@ -785,16 +785,23 @@ class EPRoCGui(GUIBase):
                 self._checkdevdialog.accept()
             else:
                 # Possibility to start the experiment even if some devices are off
-                if not self._mw.action_toggle_cw.isChecked():
+                if self._mw.action_toggle_cw.isChecked():
+                    self._checkdevdialog.mw_Label.setText('on')
+                else:
                     self._checkdevdialog.mw_Label.setText('off')
-                if not self._mw.action_toggle_modulation.isChecked():
+                if self._mw.action_toggle_modulation.isChecked():
+                    self._checkdevdialog.ref_Label.setText('on')
+                else:
                     self._checkdevdialog.ref_Label.setText('off')
-                if not self._mw.power_supply_board_RadioButton.isChecked():
+                if self._mw.power_supply_board_RadioButton.isChecked():
+                    self._checkdevdialog.psb_Label.setText('on')
+                else:
                     self._checkdevdialog.psb_Label.setText('off')
-                if not self._mw.power_supply_amplifier_RadioButton.isChecked():
+                if self._mw.power_supply_amplifier_RadioButton.isChecked():
+                    self._checkdevdialog.psa_Label.setText('on')
+                else:
                     self._checkdevdialog.psa_Label.setText('off')
                 self._checkdevdialog.show()
-        else:
             # Stop eproc
             self._mw.action_stop_next_sweep.setEnabled(False)
             self._mw.action_toggle_cw.setEnabled(True)
