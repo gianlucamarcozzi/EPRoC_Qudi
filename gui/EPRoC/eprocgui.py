@@ -771,15 +771,18 @@ class EPRoCGui(GUIBase):
         return
 
     def run_stop_scan(self, is_checked):
-        """ Manages what happens if eproc scan is started/stopped. """
+        """ Manage what happens if eproc scan is started/stopped. """
         if is_checked:
             # Control the status of power supplies, RF and LF
-            if (self._mw.action_toggle_cw.isChecked()
-                and self._mw.action_toggle_modulation.isChecked()
-                and self._mw.power_supply_board_RadioButton.isChecked()
-                and self._mw.power_supply_amplifier_RadioButton.isChecked()):
+            if self._checkdevdialog.apply_checkBox.isChecked() or\
+                    (
+                    self._mw.action_toggle_cw.isChecked()
+                    and self._mw.action_toggle_modulation.isChecked()
+                    and self._mw.power_supply_board_RadioButton.isChecked()
+                    and self._mw.power_supply_amplifier_RadioButton.isChecked()
+                    ):
                 # If everything is on: start eproc
-                self._checkdevdialog.accepted()
+                self._checkdevdialog.accept()
             else:
                 # Possibility to start the experiment even if some devices are off
                 if not self._mw.action_toggle_cw.isChecked():
