@@ -65,6 +65,7 @@ class EPRoCAnalysis(QtWidgets.QMainWindow):
         super(EPRoCAnalysis, self).__init__()
         uic.loadUi(ui_file, self)
 
+
 class EPRoCCheckDevicesDialog(QtWidgets.QDialog):
     def __init__(self):
         # Get the path to the *.ui file
@@ -74,6 +75,7 @@ class EPRoCCheckDevicesDialog(QtWidgets.QDialog):
         # Load it
         super(EPRoCCheckDevicesDialog, self).__init__()
         uic.loadUi(ui_file, self)
+
 
 class EPRoCPowerSupplyOnDialog(QtWidgets.QDialog):
     def __init__(self):
@@ -112,11 +114,7 @@ class EPRoCMotorizedStages(QtWidgets.QMainWindow):
 
 
 class EPRoCGui(GUIBase):
-
-    """
-    This is the GUI Class for EPRoC measurements
-    """
-
+    """ This is the GUI Class for EPRoC measurements."""
     # declare connectors
     eproclogic1 = Connector(interface='EPRoCLogic')
     savelogic = Connector(interface='SaveLogic')
@@ -146,7 +144,6 @@ class EPRoCGui(GUIBase):
     sigStartEprocMapping = QtCore.Signal(str)
     sigStopEprocMapping = QtCore.Signal()
 
-
     sigMsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigFsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigScanParamsChanged = QtCore.Signal(int, int)
@@ -169,7 +166,6 @@ class EPRoCGui(GUIBase):
         This init connects all the graphic modules, which were created in the
         *.ui file and configures the event handling between the modules.
         """
-
         self._eproc_logic = self.eproclogic1()
 
         # Use the inherited class 'Ui_EPRoCGuiUI' to create now the GUI element:
@@ -179,7 +175,6 @@ class EPRoCGui(GUIBase):
         self._psondialog = EPRoCPowerSupplyOnDialog()
         self._psoffdialog = EPRoCPowerSupplyOffDialog()
         self._KDC101 = EPRoCMotorizedStages()
-
 
         # Create a QSettings object for the mainwindow and store the actual GUI layout
         self.mwsettings = QtCore.QSettings("QUDI", "EPRoC")
@@ -215,65 +210,28 @@ class EPRoCGui(GUIBase):
         else:
             self._eproc_logic.plot_x = self._eproc_logic.eproc_plot_x
 
-        self.ch1_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
-                                         self._eproc_logic.eproc_plot_y[:, 0],
+        # List of pg.PlotDataItems
+        self.channel_images = []
+        for i in range(len(self._eproc_logic.eproc_plot_y[0, :])):
+            ch_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
+                                         self._eproc_logic.eproc_plot_y[:, i],
                                          pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
                                          symbol='o',
                                          symbolPen=palette.c1,
                                          symbolBrush=palette.c1,
                                          symbolSize=7)
-
-        self.ch2_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
-                                         self._eproc_logic.eproc_plot_y[:, 1],
-                                         pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
-                                         symbol='o',
-                                         symbolPen=palette.c1,
-                                         symbolBrush=palette.c1,
-                                         symbolSize=7)
-
-        self.ch3_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
-                                         self._eproc_logic.eproc_plot_y[:, 2],
-                                         pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
-                                         symbol='o',
-                                         symbolPen=palette.c1,
-                                         symbolBrush=palette.c1,
-                                         symbolSize=7)
-
-        self.ch4_image = pg.PlotDataItem(self._eproc_logic.eproc_plot_x,
-                                         self._eproc_logic.eproc_plot_y[:, 3],
-                                         pen=pg.mkPen(palette.c1, style=QtCore.Qt.DotLine),
-                                         symbol='o',
-                                         symbolPen=palette.c1,
-                                         symbolBrush=palette.c1,
-                                         symbolSize=7)
-
-        if self._eproc_logic.is_microwave_sweep:
-            x_label = 'Frequency'
-            x_units = 'Hz'
-        else:
-            x_label = 'Magnetic field'
-            x_units = 'G'
+            self.channel_images.append(ch_image)
 
         # Add the display item to the xy and xz ViewWidget, which was defined in the UI file.
-        self._mw.ch1_PlotWidget.addItem(self.ch1_image)
-        self._mw.ch1_PlotWidget.setLabel(axis='left', text='Ch 1')
-        self._mw.ch1_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch1_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
-
-        self._mw.ch2_PlotWidget.addItem(self.ch2_image)
-        self._mw.ch2_PlotWidget.setLabel(axis='left', text='Ch 2')
-        self._mw.ch2_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch2_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
-
-        self._mw.ch3_PlotWidget.addItem(self.ch3_image)
-        self._mw.ch3_PlotWidget.setLabel(axis='left', text='Ch 3')
-        self._mw.ch3_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch3_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
-
-        self._mw.ch4_PlotWidget.addItem(self.ch4_image)
-        self._mw.ch4_PlotWidget.setLabel(axis='left', text='Ch 4')
-        self._mw.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch4_PlotWidget.showGrid(x=True, y=True, alpha=0.8)
+        for i in range(len(self.channel_images)):
+            for widget_name in self._mw.__dict__.keys():
+                # Add each PlotDataItem to the corresponding PlotWidget
+                if widget_name.endswith('PlotWidget') and str(i+1) in widget_name:
+                    widg = getattr(self._mw, widget_name)
+                    widg.addItem(self.channel_images[i])
+                    widg.setLabel(axis='left', text='Ch {}'.format(i+1))
+                    widg.showGrid(x=True, y=True, alpha=0.8)
+        self.set_label_eproc_plots(self._eproc_logic.is_microwave_sweep)
 
         # Add the display item to the xy and xz ViewWidget, which was defined in the UI file for the analysis.
 
@@ -735,10 +693,11 @@ class EPRoCGui(GUIBase):
         else:
             x_label = 'Magnetic field'
             x_units = 'G'
-        self._mw.ch1_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch2_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch3_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
-        self._mw.ch4_PlotWidget.setLabel(axis='bottom', text=x_label, units=x_units)
+        for i in range(len(self.channel_images)):
+            for widget_name in self._mw.__dict__.keys():
+                if widget_name.endswith('PlotWidget') and str(i + 1) in widget_name:
+                    widg = getattr(self._mw, widget_name)
+                    widg.setLabel(axis='left', text='Ch {}'.format(i + 1))
         return
 
     # all the procedure should be checked comparing with odmrgui: set enabled false and then enabled through update status? investigate!!
@@ -802,6 +761,7 @@ class EPRoCGui(GUIBase):
                 else:
                     self._checkdevdialog.psa_Label.setText('off')
                 self._checkdevdialog.show()
+        else:
             # Stop eproc
             self._mw.action_stop_next_sweep.setEnabled(False)
             self._mw.action_toggle_cw.setEnabled(True)
@@ -869,10 +829,9 @@ class EPRoCGui(GUIBase):
     def update_plots(self, eproc_data_x, eproc_data_y):
         """ Refresh the plot widgets with new data. """
         # Update mean signal plot
-        self.ch1_image.setData(eproc_data_x, eproc_data_y[:, 0])
-        self.ch2_image.setData(eproc_data_x, eproc_data_y[:, 1])
-        self.ch3_image.setData(eproc_data_x, eproc_data_y[:, 2])
-        self.ch4_image.setData(eproc_data_x, eproc_data_y[:, 3])
+        for i in range(len(self.channel_images)):
+            ch_image = self.channel_images[i]
+            ch_image.setData(eproc_data_x, eproc_data_y[:, i])
         return
 
     def update_parameter(self, param_dict):
