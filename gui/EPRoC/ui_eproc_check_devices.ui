@@ -115,12 +115,12 @@
     <rect>
      <x>40</x>
      <y>220</y>
-     <width>261</width>
+     <width>341</width>
      <height>20</height>
     </rect>
    </property>
    <property name="text">
-    <string>Apply to all the following measurement</string>
+    <string>Prevent this window from opening again</string>
    </property>
   </widget>
  </widget>
