@@ -139,7 +139,7 @@ class EPRoCLogic(GenericLogic):
 
     # Update signals, e.g. for GUI module
     sigParameterUpdated = QtCore.Signal(dict)
-    sigOutputStateUpdated = QtCore.Signal(bool)
+    sigOutputStateUpdated = QtCore.Signal()
     sigEprocPlotsUpdated = QtCore.Signal(np.ndarray, np.ndarray)
     sigSetLabelEprocPlots = QtCore.Signal(bool)
     sigEprocRemainingTimeUpdated = QtCore.Signal(float, int)
@@ -176,6 +176,8 @@ class EPRoCLogic(GenericLogic):
         self.elapsed_time = 0.0
         self.elapsed_sweeps = 0
         self.elapsed_accumulations = 0
+
+        self.is_eproc_running = False
 
         # Set flag for stopping a measurement
         self.stopRequested = False
@@ -252,6 +254,24 @@ class EPRoCLogic(GenericLogic):
 
         self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
         self.sigSetLabelEprocPlots.emit(self.is_microwave_sweep)
+        return
+
+    def ms_on(self):
+        if self.module_state() == 'locked':
+            self.log.error('Can not change to microwave sweep. EPRoCLogic is already locked.')
+        else:
+            self.set_ms_parameters(self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power)
+            self.is_microwave_sweep = True
+            self.sigOutputStateUpdated.emit()
+        return
+
+    def ms_off(self):
+        if self.module_state() == 'locked':
+            self.log.error('Can not change to field sweep. EPRoCLogic is already locked.')
+        else:
+            self.set_fs_parameters(self.fs_start, self.fs_step, self.fs_stop, self.fs_mw_frequency, self.ms_mw_power)
+            self.is_microwave_sweep = False
+            self.sigOutputStateUpdated.emit()
         return
 
     def set_ms_parameters(self, start, step, stop, field, power):
@@ -357,21 +377,19 @@ class EPRoCLogic(GenericLogic):
                self.lia_phaseA, self.lia_phaseB, self.lia_waiting_time_factor, self.lia_harmonic, self.lia_slope, \
                self.lia_configuration
 
-
     def lockin_ext_ref_on(self):
         if self.module_state() == 'locked':
             self.log.error('Can not change lockin reference. EPRoCLogic is already locked.')
         else:
-            # setting the values for the reference
-            self.ref_shape, \
-            self.ref_freq, \
-            self.ref_mode, \
-            self.ref_deviation = self._mw_device.set_reference(self.ref_shape, self.ref_freq, self.ref_mode, self.ref_deviation)
             error_code = self._lockin_device.change_reference('ext')
             # error_code = {0|1} where 0 means internal reference and 1 external reference
             # is this hardware dependent?
             if error_code == 0:
                 self.log.error('Change of reference failed')
+            else:
+                self.set_ref_parameters(self.ref_shape, self.ref_freq, self.ref_mode, self.ref_deviation)
+                self.is_external_reference = True
+            self.sigOutputStateUpdated.emit()
         return
 
     def lockin_ext_ref_off(self):
@@ -381,6 +399,9 @@ class EPRoCLogic(GenericLogic):
             error_code = self._lockin_device.change_reference('int')
             if error_code == 1:
                 self.log.error('Change of reference failed')
+            else:
+                self.is_external_reference = False
+            self.sigOutputStateUpdated.emit()
         return
 
     def set_ref_parameters(self, shape, freq, mode, dev):
@@ -524,7 +545,7 @@ class EPRoCLogic(GenericLogic):
                 self.log.error('Activation of microwave output failed.')
 
         mode, is_running = self._mw_device.get_status()
-        self.sigOutputStateUpdated.emit(is_running)
+        # self.sigOutputStateUpdated.emit(is_running)
         return mode, is_running
 
     def mw_off(self):
@@ -537,7 +558,7 @@ class EPRoCLogic(GenericLogic):
             self.log.error('Switching off microwave source failed.')
 
         mode, is_running = self._mw_device.get_status()
-        self.sigOutputStateUpdated.emit(is_running)
+        # self.sigOutputStateUpdated.emit(is_running)
         return mode, is_running
 
     def modulation_on(self):
@@ -606,6 +627,8 @@ class EPRoCLogic(GenericLogic):
 
             self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
             self.sigNextMeasure.emit()
+            self.is_eproc_running = True
+            self.sigOutputStateUpdated.emit()
             return 0
 
     def stop_eproc(self):
@@ -637,6 +660,8 @@ class EPRoCLogic(GenericLogic):
                 self.stopRequested = False
                 self.measurement_duration = time.time() - self._startTime
                 self.module_state.unlock()
+                self.is_eproc_running = False
+                self.sigOutputStateUpdated.emit()
                 return
 
             # Between two accumulations on the same point wait for an arbitrary value of tau/10
