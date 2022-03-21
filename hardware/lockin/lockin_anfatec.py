@@ -67,7 +67,7 @@ class LockinAnfatec(Base, LockinInterface):
         if r == '0.1':
             r = '1'
         else:
-            r = str(10 * int(r))
+            r = str(10 * float(r))
         query = '899_' + r + '_'
         url = ('http://' + self._address + '/cgi-bin/remote.cgi?' + query)
         r = requests.get(url)

@@ -133,7 +133,7 @@ class EPRoCLogic(GenericLogic):
 
     # Internal signals
     sigNextMeasure = QtCore.Signal()
-    sigStartNextSpectrum = QtCore.Signal()
+    sigStartNextEproc = QtCore.Signal()
     sigNextPosition = QtCore.Signal()
     sigNextMeasureMapping = QtCore.Signal()
 
@@ -177,6 +177,7 @@ class EPRoCLogic(GenericLogic):
         self.elapsed_accumulations = 0
 
         self.is_eproc_running = False
+        self.is_eproc_mapping_running = False
 
         # Set flag for stopping a measurement
         self.stopRequested = False
@@ -215,9 +216,9 @@ class EPRoCLogic(GenericLogic):
 
         # Connect signals
         self.sigNextMeasure.connect(self._next_measure, QtCore.Qt.QueuedConnection)
-        self.sigStartNextSpectrum.connect(self._start_spectrum, QtCore.Qt.QueuedConnection)
+        self.sigStartNextEproc.connect(self.start_eproc, QtCore.Qt.QueuedConnection)
         self.sigNextPosition.connect(self._next_position, QtCore.Qt.QueuedConnection)
-        self.sigNextMeasureMapping.connect(self._next_measure_mapping, QtCore.Qt.QueuedConnection)
+        # self.sigNextMeasureMapping.connect(self._next_measure_mapping, QtCore.Qt.QueuedConnection)
 
         return
 
@@ -588,7 +589,8 @@ class EPRoCLogic(GenericLogic):
             self.elapsed_accumulations = 0
             self.actual_index = 0  # It is the index of the point along the sweep
 
-            remaining_time = self.lia_waiting_time * self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps
+            remaining_time = self.lia_waiting_time * (self.number_of_accumulations
+                                                      * self.eproc_plot_x.size * self.number_of_sweeps)
             self._startTime = time.time()
 
             self._initialize_eproc_plots()
@@ -656,13 +658,15 @@ class EPRoCLogic(GenericLogic):
 
             self._update_remaining_time()
             self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
-            self.sigNextMeasure.emit()
+            if (self.is_eproc_mapping_running and self.elapsed_sweeps != self.number_of_sweeps) or not self.is_eproc_mapping_running:
+                self.sigNextMeasure.emit()
             return
 
     def _get_data_lia(self):
         """ Get data from the lockin amplifier. The number of channels is four."""
         self.eproc_raw_data[
-            self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index, :] = self._lockin_device.get_data_lia()
+            self.elapsed_sweeps, self.elapsed_accumulations,
+            self.actual_index, :] = self._lockin_device.get_data_lia()
 
         # Measure again if data from Lia is not real data (when this happens the value is really close to zero)
         for i in range(len(self.eproc_raw_data[0, 0, 0, :])):
@@ -693,7 +697,10 @@ class EPRoCLogic(GenericLogic):
                 self.elapsed_sweeps += 1
                 self.actual_index = 0
                 if self.elapsed_sweeps == self.number_of_sweeps or self.stopNextSweepRequested:
-                    self.stopRequested = True
+                    if self.is_eproc_mapping_running:
+                        self.sigNextPosition.emit()
+                    else:
+                        self.stopRequested = True
             else:
                 if self.is_microwave_sweep:
                     self.ms_actual_frequency, self.ms_mw_power, mode = \
@@ -968,7 +975,6 @@ class EPRoCLogic(GenericLogic):
         return
 
     def start_eproc_mapping(self, tag):
-
         if tag == "":
             timestamp = datetime.datetime.now()
             tag = str(timestamp).replace(' ', '_')
@@ -982,7 +988,11 @@ class EPRoCLogic(GenericLogic):
             self.log.error('Can not start EPRoC scan. Logic is already locked.')
             return -1
 
+        self.n_step_x = 0
+        self.n_step_y = 0
+        self.n_step_z = 0
         self.check_ranges_motors()
+
         self.set_motor_parameters(self.x_motor_set_position, self.x_start, self.x_step, self.x_stop,
                                   self.y_motor_set_position, self.y_start, self.y_step, self.y_stop,
                                   self.z_motor_set_position, self.z_start, self.z_step, self.z_stop)
@@ -1001,140 +1011,29 @@ class EPRoCLogic(GenericLogic):
         # remaining_time = self.lia_waiting_time * self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps
 
         # self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
-        self.sigStartNextSpectrum.emit()
+        self.is_eproc_mapping_running = True
+        self.sigStartNextEproc.emit()
 
         return 0
 
     def stop_eproc_mapping(self):
-
+        self.stopRequested = True
         return 0
 
     def check_ranges_motors(self):
-        """
-        Write the stop point as  start + n * step, where n is the number of steps
-        """
+        """ Write the stop point as  start + n * step, where n is the number of steps."""
         # sigParameterUpdated.emit() is not present because this module is only called in start_eproc() and it is
         # placed before another method that calls sigParameterUpdated.emit()
-        num_step = int(np.rint((self.x_stop - self.x_start) / self.x_step))
-        self.x_stop = self.x_start + num_step * self.x_step
-        num_step = int(np.rint((self.y_stop - self.y_start) / self.y_step))
-        self.y_stop = self.y_start + num_step * self.y_step
-        num_step = int(np.rint((self.z_stop - self.z_start) / self.z_step))
-        self.z_stop = self.z_start + num_step * self.z_step
-
+        if self.x_start != self.x_stop:
+            self.n_step_x = int(np.rint((self.x_stop - self.x_start) / self.x_step))
+        self.x_stop = round(self.x_start + self.n_step_x * self.x_step, 4)
+        if self.y_start != self.y_stop:
+            self.n_step_y = int(np.rint((self.y_stop - self.y_start) / self.y_step))
+        self.y_stop = round(self.y_start + self.n_step_y * self.y_step,4)
+        if self.z_start != self.z_stop:
+            self.n_step_z = int(np.rint((self.z_stop - self.z_start) / self.z_step))
+        self.z_stop = round(self.z_start + self.n_step_z * self.z_step, 4)
         return
-
-    def _start_spectrum(self):
-        with self.threadlock:
-            if self.module_state() == 'locked':
-                self.log.error('Can not start EPRoC scan. Logic is already locked.')
-                return -1
-
-            self.check_ranges()
-
-            # Set the checked parameters and update them if they are wrong
-            if self.is_microwave_sweep:
-                self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power = \
-                    self.set_ms_parameters(self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power)
-                self.ms_actual_frequency = self.ms_start
-            else:
-                self.fs_start, self.fs_step, self.fs_stop, self.fs_mw_frequency, self.fs_mw_power = \
-                    self.set_fs_parameters(self.fs_start, self.fs_step, self.fs_stop, self.fs_mw_frequency,
-                                           self.fs_mw_power)
-                self.fs_actual_field = self.fs_start
-
-            if self.lia_tauB > self.lia_tauA:
-                self.lia_waiting_time = self.lia_tauB * self.lia_waiting_time_factor  # in seconds
-            else:
-                self.lia_waiting_time = self.lia_tauA * self.lia_waiting_time_factor
-
-            self.elapsed_sweeps = 0
-            self.elapsed_accumulations = 0
-            self.actual_index = 0  # It is the index of the point along the sweep
-
-            remaining_time = self.lia_waiting_time * self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps
-            self._startTime = time.time()
-
-            self._initialize_eproc_plots()
-            self.eproc_raw_data = np.zeros(
-                [self.number_of_sweeps,
-                 self.number_of_accumulations,
-                 self.eproc_plot_x.size,
-                 4]  # number of channels {2 or 4}
-            )
-
-            self.module_state.lock()
-            # self.fc.clear_result()
-
-            self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
-            self.sigNextMeasureMapping.emit()
-            return 0
-
-    def _next_measure_mapping(self):
-        with self.threadlock:
-            if self.module_state() != 'locked':
-                return
-
-            if self.stopRequested:
-                self.stopRequested = False
-                self.measurement_duration = time.time() - self._startTime
-                self.module_state.unlock()
-                return
-
-            time.sleep(self.lia_waiting_time)
-            self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
-            :] = self._lockin_device.get_data_lia()[:4]  # this is for 4 channels
-            # sometimes the lia returns values that are really close to zero and not the real values.
-            # the measurement is performed again in that case
-            for i in range(len(self.eproc_raw_data[0, 0, 0, :])):
-                while self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index, i] < 1e-7:
-                    time.sleep(0.01)
-                    self.eproc_raw_data[self.elapsed_sweeps, self.elapsed_accumulations, self.actual_index,
-                    :] = self._lockin_device.get_data_lia()[:4]  # this is for 4 channels
-
-            self.elapsed_accumulations += 1
-
-            remaining_time = self.lia_waiting_time * \
-                             (self.number_of_accumulations * self.eproc_plot_x.size * self.number_of_sweeps -
-                              (self.elapsed_accumulations + self.number_of_accumulations * self.actual_index +
-                               self.number_of_accumulations * self.eproc_plot_x.size * self.elapsed_sweeps))
-            if self.elapsed_accumulations == self.number_of_accumulations:
-                # average over accumulations for the current frequency and the current sweep to update the plots
-                new_value = np.mean(self.eproc_raw_data[self.elapsed_sweeps, :, self.actual_index, :],
-                                    axis=0,  # axis = 0 in this case means an average over accumulations
-                                    dtype=np.float64)
-
-                self.eproc_plot_y[self.actual_index, :] = (self.eproc_plot_y[self.actual_index,
-                                                           :] * self.elapsed_sweeps + new_value) / (
-                                                                      self.elapsed_sweeps + 1)
-
-                self.elapsed_accumulations = 0
-
-                if self.actual_index == self.eproc_plot_x.size - 1:
-                    if self.is_microwave_sweep:
-                        self.ms_actual_frequency, self.ms_mw_power, mode = \
-                            self._mw_device.set_cw(self.ms_start, self.ms_mw_power)
-                    else:
-                        self.fs_actual_field = self._magnet.set_central_field(self.fs_start)
-                    self.elapsed_sweeps += 1
-                    self.actual_index = 0
-                    if self.elapsed_sweeps == self.number_of_sweeps or self.stopNextSweepRequested:
-                        self.sigNextPosition.emit()
-                        self.module_state.unlock()
-                else:
-                    if self.is_microwave_sweep:
-                        self.ms_actual_frequency, self.ms_mw_power, mode = \
-                            self._mw_device.set_cw(self.ms_actual_frequency + self.ms_step, self.ms_mw_power)
-                    else:
-                        self.fs_actual_field = self._magnet.set_central_field(self.fs_actual_field + self.fs_step)
-                    self.actual_index += 1
-
-            self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
-            self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
-
-            if self.elapsed_sweeps != self.number_of_sweeps:
-                self.sigNextMeasureMapping.emit()
-            return
 
     def _next_position(self):
         self.save_eproc_data_mapping()
@@ -1146,6 +1045,7 @@ class EPRoCLogic(GenericLogic):
                 if self.actual_z == self.z_stop:
                     self.actual_z = self.z_start
                     self.stopRequested = True
+                    self.is_eproc_mapping_running = False
                 else:
                     self.actual_z = self.actual_z + self.z_step
 
@@ -1157,8 +1057,7 @@ class EPRoCLogic(GenericLogic):
         self._x_motor.move(self.actual_x)
         self._y_motor.move(self.actual_y)
         self._z_motor.move(self.actual_z)
-
-        self.sigStartNextSpectrum.emit()
+        self.sigStartNextEproc.emit()
 
         return
 
@@ -1224,9 +1123,12 @@ class EPRoCLogic(GenericLogic):
             else:
                 parameters['Lockin Internal Modulation Frequency (Hz)'] = self.lia_int_ref_freq
 
-            parameters['x_start'] = self.x_start
-            parameters['y_start'] = self.y_start
-            parameters['z_start'] = self.z_start
+            parameters['n_x_pos'] = self.n_step_x + 1
+            parameters['n_y_pos'] = self.n_step_y + 1
+            parameters['n_z_pos'] = self.n_step_z + 1
+            parameters['x_pos'] = self.actual_x
+            parameters['y_pos'] = self.actual_y
+            parameters['z_pos'] = self.actual_z
 
             self._save_logic.save_data(eproc_data,
                                        filepath=filepath,
@@ -1237,9 +1139,9 @@ class EPRoCLogic(GenericLogic):
 
         else:
 
-            parameters['x_position'] = self.actual_x
-            parameters['y_position'] = self.actual_y
-            parameters['z_position'] = self.actual_z
+            parameters['x_pos'] = self.actual_x
+            parameters['y_pos'] = self.actual_y
+            parameters['z_pos'] = self.actual_z
 
             self._save_logic.save_data(eproc_data,
                                        filepath=filepath,
