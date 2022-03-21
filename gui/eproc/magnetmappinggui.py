@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This file contains the Qudi GUI module for EPRoC control.
+This file contains the Qudi GUI module for eproc control.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ from functools import partial
 
 class EPRoCMainWindow(QtWidgets.QMainWindow):
     """
-    The main window for the EPRoC measurement GUI.
+    The main window for the eproc measurement GUI.
     """
 
     def __init__(self):
@@ -114,7 +114,7 @@ class EPRoCMotorizedStages(QtWidgets.QMainWindow):
 
 
 class EPRoCGui(GUIBase):
-    """ This is the GUI Class for EPRoC measurements."""
+    """ This is the GUI Class for eproc measurements."""
     # declare connectors
     eproclogic1 = Connector(interface='EPRoCLogic')
     savelogic = Connector(interface='SaveLogic')
@@ -144,7 +144,6 @@ class EPRoCGui(GUIBase):
     sigMove = QtCore.Signal(str)
     sigXPosition = QtCore.Signal()
     sigStartEprocMapping = QtCore.Signal(str)
-    sigStopEprocMapping = QtCore.Signal()
 
     sigMsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigFsParamsChanged = QtCore.Signal(float, float, float, float, float)
@@ -163,7 +162,7 @@ class EPRoCGui(GUIBase):
         super().__init__(config=config, **kwargs)
 
     def on_activate(self):
-        """ Definition, configuration and initialisation of the EPRoC GUI.
+        """ Definition, configuration and initialisation of the eproc GUI.
 
         This init connects all the graphic modules, which were created in the
         *.ui file and configures the event handling between the modules.
@@ -179,7 +178,7 @@ class EPRoCGui(GUIBase):
         self._KDC101 = EPRoCMotorizedStages()
 
         # Create a QSettings object for the mainwindow and store the actual GUI layout
-        self.mwsettings = QtCore.QSettings("QUDI", "EPRoC")
+        self.mwsettings = QtCore.QSettings("QUDI", "eproc")
         self.mwsettings.setValue("geometry", self._mw.saveGeometry())
         self.mwsettings.setValue("windowState", self._mw.saveState())
 
@@ -207,7 +206,7 @@ class EPRoCGui(GUIBase):
             self._mw.lia_taua_ComboBox.addItem(self.tau_float_to_str(tau))
             self._mw.lia_taub_ComboBox.addItem(self.tau_float_to_str(tau))
 
-        if self._eproc_logic.is_microwave_sweep:
+        if self._eproc_logic.is_ms:
             self._eproc_logic.plot_x = self._eproc_logic.eproc_plot_x * self._eproc_logic.frequency_multiplier
         else:
             self._eproc_logic.plot_x = self._eproc_logic.eproc_plot_x
@@ -233,7 +232,7 @@ class EPRoCGui(GUIBase):
                     widg.addItem(self.channel_images[i])
                     widg.setLabel(axis='left', text='Ch {}'.format(i+1))
                     widg.showGrid(x=True, y=True, alpha=0.8)
-        self.set_label_eproc_plots(self._eproc_logic.is_microwave_sweep)
+        self.set_label_eproc_plots(self._eproc_logic.is_ms)
 
         # Add the display item to the xy and xz ViewWidget, which was defined in the UI file for the analysis.
 
@@ -413,7 +412,7 @@ class EPRoCGui(GUIBase):
         # Update signals coming from logic:
         self._eproc_logic.sigParameterUpdated.connect(self.update_parameter,
                                                       QtCore.Qt.QueuedConnection)
-        self._eproc_logic.sigOutputStateUpdated.connect(self.update_status,
+        self._eproc_logic.sigStatusUpdated.connect(self.update_status,
                                                         QtCore.Qt.QueuedConnection)
         self._eproc_logic.sigSetLabelEprocPlots.connect(self.set_label_eproc_plots, QtCore.Qt.QueuedConnection)
         self._eproc_logic.sigEprocPlotsUpdated.connect(self.update_plots, QtCore.Qt.QueuedConnection)
@@ -436,7 +435,7 @@ class EPRoCGui(GUIBase):
         self._psoffdialog.accepted.connect(self.power_supply_off_accepted)
         self._psoffdialog.rejected.connect(self.power_supply_off_rejected)
 
-        # Show the Main EPRoC GUI:
+        # Show the Main eproc GUI:
         self.show()
 
         #######################
@@ -508,7 +507,6 @@ class EPRoCGui(GUIBase):
         self.sigMotorParamsChanged.connect(self._eproc_logic.set_motor_parameters, QtCore.Qt.QueuedConnection)
         self.sigMove.connect(self._eproc_logic.move, QtCore.Qt.QueuedConnection)
         self.sigStartEprocMapping.connect(self._eproc_logic.start_eproc_mapping, QtCore.Qt.QueuedConnection)
-        self.sigStopEprocMapping.connect(self._eproc_logic.stop_eproc_mapping, QtCore.Qt.QueuedConnection)
         #self.sigReadPosition.connect(self._eproc_logic.read_position, QtCore.Qt.QueuedConnection)
 
     def on_deactivate(self):
@@ -524,7 +522,7 @@ class EPRoCGui(GUIBase):
         self._psondialog.accepted.disconnect()
         self._psoffdialog.accepted.disconnect()
         self._eproc_logic.sigParameterUpdated.disconnect()
-        self._eproc_logic.sigOutputStateUpdated.disconnect()
+        self._eproc_logic.sigStatusUpdated.disconnect()
         self._eproc_logic.sigSetLabelEprocPlots.disconnect()
         self._eproc_logic.sigEprocPlotsUpdated.disconnect()
         self._eproc_logic.sigEprocRemainingTimeUpdated.disconnect()
@@ -620,28 +618,27 @@ class EPRoCGui(GUIBase):
         self._KDC101.action_toggle_x_motor.triggered.disconnect()
         self._KDC101.action_toggle_y_motor.triggered.disconnect()
         self._KDC101.action_toggle_z_motor.triggered.disconnect()
-        self._KDC101.x_Set_Position_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.x_Move_PushButton.clicked.disconnect(self.x_move_to_position)
-        self._KDC101.y_Set_Position_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.y_Move_PushButton.clicked.disconnect(self.y_move_to_position)
-        self._KDC101.z_Set_Position_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.z_Move_PushButton.clicked.disconnect(self.z_move_to_position)
-        self._KDC101.x_Start_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.x_Step_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.x_Stop_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.y_Start_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.y_Step_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.y_Stop_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.z_Start_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.z_Step_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
-        self._KDC101.z_Stop_doubleSpinBox.editingFinished.disconnect(self.change_motor_params)
+        self._KDC101.x_Set_Position_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.x_Move_PushButton.clicked.disconnect()
+        self._KDC101.y_Set_Position_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.y_Move_PushButton.clicked.disconnect()
+        self._KDC101.z_Set_Position_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.z_Move_PushButton.clicked.disconnect()
+        self._KDC101.x_Start_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.x_Step_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.x_Stop_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.y_Start_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.y_Step_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.y_Stop_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.z_Start_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.z_Step_doubleSpinBox.editingFinished.disconnect()
+        self._KDC101.z_Stop_doubleSpinBox.editingFinished.disconnect()
 
         self.sigHome.disconnect()
         self.sigMotorParamsChanged.disconnected()
-        self.sigMove.diconnect(self._eproc_logic.move, QtCore.Qt.QueuedConnection)
-        self.sigReadPosition.disconnect(self._eproc_logic.read_position, QtCore.Qt.QueuedConnection)
-        self.sigStartEprocMapping.disconnect(self._eproc_logic.start_eproc_mapping, QtCore.Qt.QueuedConnection)
-        self.sigStopEprocMapping.disconnect(self._eproc_logic.stop_eproc_mapping, QtCore.Qt.QueuedConnection)
+        self.sigMove.diconnect()
+        self.sigReadPosition.disconnect()
+        self.sigStartEprocMapping.disconnect()
 
         self._mw.close()
         self._KDC101.close()
@@ -766,7 +763,7 @@ class EPRoCGui(GUIBase):
         # Block signals from firing
         self._mw.action_run_stop.blockSignals(True)
         self._mw.action_stop_next_sweep.blockSignals(True)
-        self._mw.action_toggle_cw.blockSignals(True) # are these two necessary?
+        self._mw.action_toggle_cw.blockSignals(True)    # Are these two necessary?
         self._mw.action_toggle_modulation.blockSignals(True)
 
         if self._eproc_logic.is_eproc_running:
@@ -783,7 +780,7 @@ class EPRoCGui(GUIBase):
                     widg.setEnabled(True)
             # Set disabled Boxes depending on status
             self._mw.action_run_stop.setChecked(False)
-            if self._eproc_logic.is_microwave_sweep:
+            if self._eproc_logic.is_ms:
                 for widget_name in self._mw.__dict__.keys():
                     if widget_name.startswith('fs'):
                         widg = getattr(self._mw, widget_name)
@@ -797,7 +794,7 @@ class EPRoCGui(GUIBase):
                         widg.setEnabled(False)
                 self._mw.ms_RadioButton.setEnabled(True)
                 self._mw.fs_RadioButton.setChecked(True)
-            if self._eproc_logic.is_external_reference:
+            if self._eproc_logic.is_lia_ext_ref:
                 self._mw.lia_frequency_DoubleSpinBox.setEnabled(False)
                 self._mw.ref_RadioButton.setChecked(True)
             else:
@@ -807,6 +804,13 @@ class EPRoCGui(GUIBase):
                         widg.setEnabled(False)
                 self._mw.ref_RadioButton.setEnabled(True)
                 self._mw.ref_RadioButton.setChecked(False)
+
+            # Unlock widgets in the motorized stage GUI
+            for widget_name in self._KDC101.__dict__.keys():
+                if widget_name.endswith('Box') or widget_name.endswith('Button'):
+                    widg = getattr(self._KDC101, widget_name)
+                    widg.setEnabled(True)
+            self._KDC101.action_Play.setChecked(False)
 
         # Unblock signal firing
         self._mw.action_run_stop.blockSignals(False)
@@ -1368,7 +1372,6 @@ class EPRoCGui(GUIBase):
             self.sigToggleZMotorOff.emit()
         return
 
-
     def change_motor_params(self):
         """ Change parameters from the motor Dock Widget """
         x_motor_set_position = self._KDC101.x_Set_Position_doubleSpinBox.value()
@@ -1403,11 +1406,9 @@ class EPRoCGui(GUIBase):
         return
 
     def x_read_position(self, pos):
-
         if self._KDC101.action_toggle_x_motor.isChecked():
-             return pos
-
-        return '0'
+            return pos
+        return
 
     def run_stop_mapping(self, is_checked):
         """ Start the mapping of the field """
@@ -1426,8 +1427,7 @@ class EPRoCGui(GUIBase):
                     widg.setEnabled(False)
 
             filetag = self._KDC101.save_tag_LineEdit.text()
-
             self.sigStartEprocMapping.emit(filetag)
         else:
-            self.sigStopEprocMapping.emit()
+            self.sigStopEproc.emit()
         return

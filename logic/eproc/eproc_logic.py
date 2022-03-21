@@ -108,8 +108,8 @@ class EPRoCLogic(GenericLogic):
     psa_current_max_outp1 = StatusVar('psa_voltage_current_max_outp1', 0.1)
     psa_current_max_outp2 = StatusVar('psa_voltage_current_max_outp2', 0.1)
 
-    is_microwave_sweep = StatusVar('is_microwave_sweep', True)
-    is_external_reference = StatusVar('is_external_reference', True)
+    is_ms = StatusVar('is_ms', True)    # True if microwave sweep is set, false if magnetic field sweep is set
+    is_lia_ext_ref = StatusVar('is_lia_ext_ref', True)
 
     x_motor_set_position = StatusVar('x_motor_set_position', 1)
     y_motor_set_position = StatusVar('y_motor_set_position', 1)
@@ -139,7 +139,7 @@ class EPRoCLogic(GenericLogic):
 
     # Update signals, e.g. for GUI module
     sigParameterUpdated = QtCore.Signal(dict)
-    sigOutputStateUpdated = QtCore.Signal()
+    sigStatusUpdated = QtCore.Signal()
     sigEprocPlotsUpdated = QtCore.Signal(np.ndarray, np.ndarray)
     sigSetLabelEprocPlots = QtCore.Signal(bool)
     sigEprocRemainingTimeUpdated = QtCore.Signal(float, int)
@@ -218,8 +218,6 @@ class EPRoCLogic(GenericLogic):
         self.sigNextMeasure.connect(self._next_measure, QtCore.Qt.QueuedConnection)
         self.sigStartNextEproc.connect(self.start_eproc, QtCore.Qt.QueuedConnection)
         self.sigNextPosition.connect(self._next_position, QtCore.Qt.QueuedConnection)
-        # self.sigNextMeasureMapping.connect(self._next_measure_mapping, QtCore.Qt.QueuedConnection)
-
         return
 
     def on_deactivate(self):
@@ -242,10 +240,12 @@ class EPRoCLogic(GenericLogic):
         self._mw_device.off()
         # Disconnect signals
         self.sigNextMeasure.disconnect()
+        self.sigStartNextEproc.disconnect()
+        self.sigNextPosition.disconnect()
 
     def _initialize_eproc_plots(self):
         """ Initializing the EPRoC plots. """
-        if self.is_microwave_sweep:
+        if self.is_ms:
             self.eproc_plot_x = np.array(np.arange(self.ms_start, self.ms_stop + self.ms_step, self.ms_step))
         else:
             self.eproc_plot_x = np.array(np.arange(self.fs_start, self.fs_stop + self.fs_step, self.fs_step))
@@ -253,7 +253,7 @@ class EPRoCLogic(GenericLogic):
                                       4])  # writing it for 4 channels, but this should become a method get_lockin_channels of some sort
 
         self.sigEprocPlotsUpdated.emit(self.eproc_plot_x, self.eproc_plot_y)
-        self.sigSetLabelEprocPlots.emit(self.is_microwave_sweep)
+        self.sigSetLabelEprocPlots.emit(self.is_ms)
         return
 
     def ms_on(self):
@@ -261,8 +261,8 @@ class EPRoCLogic(GenericLogic):
             self.log.error('Can not change to microwave sweep. EPRoCLogic is already locked.')
         else:
             self.set_ms_parameters(self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power)
-            self.is_microwave_sweep = True
-            self.sigOutputStateUpdated.emit()
+            self.is_ms = True
+            self.sigStatusUpdated.emit()
         return
 
     def ms_off(self):
@@ -270,8 +270,8 @@ class EPRoCLogic(GenericLogic):
             self.log.error('Can not change to field sweep. EPRoCLogic is already locked.')
         else:
             self.set_fs_parameters(self.fs_start, self.fs_step, self.fs_stop, self.fs_mw_frequency, self.ms_mw_power)
-            self.is_microwave_sweep = False
-            self.sigOutputStateUpdated.emit()
+            self.is_ms = False
+            self.sigStatusUpdated.emit()
         return
 
     def set_ms_parameters(self, start, step, stop, field, power):
@@ -390,8 +390,8 @@ class EPRoCLogic(GenericLogic):
                 self.log.error('Change of reference failed')
             else:
                 self.set_ref_parameters(self.ref_shape, self.ref_freq, self.ref_mode, self.ref_deviation)
-                self.is_external_reference = True
-            self.sigOutputStateUpdated.emit()
+                self.is_lia_ext_ref = True
+            self.sigStatusUpdated.emit()
         return
 
     def lockin_ext_ref_off(self):
@@ -402,8 +402,8 @@ class EPRoCLogic(GenericLogic):
             if error_code == 1:
                 self.log.error('Change of reference failed')
             else:
-                self.is_external_reference = False
-            self.sigOutputStateUpdated.emit()
+                self.is_lia_ext_ref = False
+            self.sigStatusUpdated.emit()
         return
 
     def set_ref_parameters(self, shape, freq, mode, dev):
@@ -527,7 +527,7 @@ class EPRoCLogic(GenericLogic):
             self.log.error('Activation of microwave output failed.')
 
         mode, is_running = self._mw_device.get_status()
-        # self.sigOutputStateUpdated.emit(is_running)
+        # self.sigStatusUpdated.emit(is_running)
         return mode, is_running
 
     def mw_off(self):
@@ -540,7 +540,7 @@ class EPRoCLogic(GenericLogic):
             self.log.error('Switching off microwave source failed.')
 
         mode, is_running = self._mw_device.get_status()
-        # self.sigOutputStateUpdated.emit(is_running)
+        # self.sigStatusUpdated.emit(is_running)
         return mode, is_running
 
     def modulation_on(self):
@@ -572,7 +572,7 @@ class EPRoCLogic(GenericLogic):
             self.check_ranges()
 
             # Set the checked parameters and update them if they are wrong
-            if self.is_microwave_sweep:
+            if self.is_ms:
                 self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power = \
                     self.set_ms_parameters(self.ms_start, self.ms_step, self.ms_stop, self.ms_field, self.ms_mw_power)
                 self.ms_actual_frequency = self.ms_start
@@ -608,7 +608,7 @@ class EPRoCLogic(GenericLogic):
 
             self.is_eproc_running = True
             self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
-            self.sigOutputStateUpdated.emit()
+            self.sigStatusUpdated.emit()
             self.sigNextMeasure.emit()
             return 0
 
@@ -646,7 +646,7 @@ class EPRoCLogic(GenericLogic):
                 self.is_eproc_running = False
                 self.measurement_duration = time.time() - self._startTime
                 # self.module_state.unlock()
-                self.sigOutputStateUpdated.emit()
+                self.sigStatusUpdated.emit()
                 return
 
             # Between two accumulations on the same point wait for an arbitrary value of tau/10
@@ -689,7 +689,7 @@ class EPRoCLogic(GenericLogic):
 
             self.elapsed_accumulations = 0
             if self.actual_index == self.eproc_plot_x.size - 1:
-                if self.is_microwave_sweep:
+                if self.is_ms:
                     self.ms_actual_frequency, self.ms_mw_power, mode = \
                         self._mw_device.set_cw(self.ms_start, self.ms_mw_power)
                 else:
@@ -702,7 +702,7 @@ class EPRoCLogic(GenericLogic):
                     else:
                         self.stopRequested = True
             else:
-                if self.is_microwave_sweep:
+                if self.is_ms:
                     self.ms_actual_frequency, self.ms_mw_power, mode = \
                         self._mw_device.set_cw(self.ms_actual_frequency + self.ms_step, self.ms_mw_power)
                 else:
@@ -783,7 +783,7 @@ class EPRoCLogic(GenericLogic):
         eproc_raw_data = OrderedDict()
         parameters = OrderedDict()
 
-        if self.is_microwave_sweep:
+        if self.is_ms:
             eproc_data['Frequency\t\tChannel 1\t\tChannel 2\t\tChannel 3\t\tChannel 4'] = np.array(
                 eproc_data_list).transpose()
             eproc_raw_data['Column 0: frequency\n'
@@ -838,7 +838,7 @@ class EPRoCLogic(GenericLogic):
         parameters['Lockin Slope (dB/oct)'] = self.lia_slope
         parameters['Lockin Configuration'] = self.lia_configuration
 
-        if self.is_external_reference:
+        if self.is_lia_ext_ref:
             parameters['Modulation Signal Shape'] = self.ref_shape
             parameters['Modulation Frequency (Hz)'] = str(self.ref_freq)
             parameters['Modulation Deviation (Hz)'] = str(self.ref_deviation)
@@ -1012,12 +1012,10 @@ class EPRoCLogic(GenericLogic):
 
         # self.sigEprocRemainingTimeUpdated.emit(remaining_time, self.elapsed_sweeps)
         self.is_eproc_mapping_running = True
+        param_dict = {'x_position': self.actual_x, 'y_position': self.actual_y, 'z_position': self.actual_z}
+        self.sigParameterUpdated.emit(param_dict)
         self.sigStartNextEproc.emit()
 
-        return 0
-
-    def stop_eproc_mapping(self):
-        self.stopRequested = True
         return 0
 
     def check_ranges_motors(self):
@@ -1057,8 +1055,10 @@ class EPRoCLogic(GenericLogic):
         self._x_motor.move(self.actual_x)
         self._y_motor.move(self.actual_y)
         self._z_motor.move(self.actual_z)
-        self.sigStartNextEproc.emit()
 
+        param_dict = {'x_position': self.actual_x, 'y_position': self.actual_y, 'z_position': self.actual_z}
+        self.sigParameterUpdated.emit(param_dict)
+        self.sigStartNextEproc.emit()
         return
 
     def save_eproc_data_mapping(self):
@@ -1076,7 +1076,7 @@ class EPRoCLogic(GenericLogic):
         eproc_data = OrderedDict()
         parameters = OrderedDict()
 
-        if self.is_microwave_sweep:
+        if self.is_ms:
             eproc_data['Frequency\t\tChannel 1\t\tChannel 2\t\tChannel 3\t\tChannel 4'] = np.array(
                 eproc_data_list).transpose()
 
@@ -1115,7 +1115,7 @@ class EPRoCLogic(GenericLogic):
             parameters['Lockin Slope (dB/oct)'] = self.lia_slope
             parameters['Lockin Configuration'] = self.lia_configuration
 
-            if self.is_external_reference:
+            if self.is_lia_ext_ref:
                 parameters['Modulation Signal Shape'] = self.ref_shape
                 parameters['Modulation Frequency (Hz)'] = str(self.ref_freq)
                 parameters['Modulation Deviation (Hz)'] = str(self.ref_deviation)
