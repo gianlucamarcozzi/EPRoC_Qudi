@@ -116,19 +116,19 @@ class EPRoCGui(GUIBase):
     sigFsOff = QtCore.Signal()
     sigLiaExtRefOn = QtCore.Signal()
     sigLiaExtRefOff = QtCore.Signal()
-    sigPowerSupplyBoardOn = QtCore.Signal()
-    sigPowerSupplyBoardOff = QtCore.Signal()
-    sigPowerSupplyAmplifierOn = QtCore.Signal()
-    sigPowerSupplyAmplifierOff = QtCore.Signal()
+    sigPsbOn = QtCore.Signal()
+    sigPsbOff = QtCore.Signal()
+    sigPsaOn = QtCore.Signal()
+    sigPsaOff = QtCore.Signal()
 
     sigFsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigBsParamsChanged = QtCore.Signal(float, float, float, float, float)
     sigScanParamsChanged = QtCore.Signal(int, int)
-    sigRefParamsChanged = QtCore.Signal(str, float, str, float)
+    sigRefParamsChanged = QtCore.Signal(float, float, str)
     sigLiaParamsChanged = QtCore.Signal(str, float, str, float, float, float, float, float, float, int, str, str)
     sigFrequencyMultiplierChanged = QtCore.Signal(int)
-    sigPowerSupplyBoardParamsChanged = QtCore.Signal(float, float, float, float)
-    sigPowerSupplyAmplifierParamsChanged = QtCore.Signal(float, float, float, float)
+    sigPsbParamsChanged = QtCore.Signal(float, float, float, float)
+    sigPsaParamsChanged = QtCore.Signal(float, float, float, float)
     sigMotorParamsChanged = QtCore.Signal(float, float, float, float, float, float, float, float, float, float, float,
                                           float)
 
@@ -175,16 +175,14 @@ class EPRoCGui(GUIBase):
                                               'added to the filename.')
         self._mw.save_ToolBar.addWidget(self._mw.save_tag_LineEdit)
 
+        self._mw.ref_mode_ComboBox.setMinimumWidth(130)
+        self._mw.ref_deviation_pp_LineEdit.setMinimumWidth(150)
+
         # Add values of time constants of lockin taking them from the hardware
         time_constants = self._eproc_logic.get_time_constants()
         for tau in time_constants:
             self._mw.lia_taua_ComboBox.addItem(self.tau_float_to_str(tau))
             self._mw.lia_taub_ComboBox.addItem(self.tau_float_to_str(tau))
-
-        if self._eproc_logic.is_fs:
-            self._eproc_logic.plot_x = self._eproc_logic.eproc_plot_x * self._eproc_logic.f_multiplier
-        else:
-            self._eproc_logic.plot_x = self._eproc_logic.eproc_plot_x
 
         # List of pg.PlotDataItems
         self.channel_images = []
@@ -241,13 +239,14 @@ class EPRoCGui(GUIBase):
         # lia = lockin amplifier, psa = power supply amplifier, psb = power supply board
         # ref = reference signal
         self._mw.fs_field_DoubleSpinBox.setValue(self._eproc_logic.fs_field)
+        self._mw.fs_field_LineEdit.setText(self.field_to_freq(self._eproc_logic.bs_frequency))
         self._mw.fs_mw_power_DoubleSpinBox.setValue(self._eproc_logic.fs_mw_power)
         self._mw.fs_start_DoubleSpinBox.setValue(self._eproc_logic.fs_start)
         self._mw.fs_stop_DoubleSpinBox.setValue(self._eproc_logic.fs_stop)
         self._mw.fs_step_DoubleSpinBox.setValue(self._eproc_logic.fs_step)
-        self._mw.fs_start_LineEdit.setText(self.mw_to_field(self._eproc_logic.fs_start))
-        self._mw.fs_step_LineEdit.setText(self.mw_to_field(self._eproc_logic.fs_step))
-        self._mw.fs_stop_LineEdit.setText(self.mw_to_field(self._eproc_logic.fs_stop))
+        self._mw.fs_start_LineEdit.setText(self.freq_to_field(self._eproc_logic.fs_start))
+        self._mw.fs_step_LineEdit.setText(self.freq_to_field(self._eproc_logic.fs_step))
+        self._mw.fs_stop_LineEdit.setText(self.freq_to_field(self._eproc_logic.fs_stop))
 
         self._mw.bs_frequency_DoubleSpinBox.setValue(self._eproc_logic.bs_frequency)
         self._mw.bs_frequency_LineEdit.setText(self.multiplied_mw(self._eproc_logic.bs_frequency))
@@ -255,14 +254,14 @@ class EPRoCGui(GUIBase):
         self._mw.bs_start_DoubleSpinBox.setValue(self._eproc_logic.bs_start)
         self._mw.bs_stop_DoubleSpinBox.setValue(self._eproc_logic.bs_stop)
         self._mw.bs_step_DoubleSpinBox.setValue(self._eproc_logic.bs_step)
-        self._mw.bs_start_LineEdit.setText(self.field_to_mw(self._eproc_logic.bs_start))
-        self._mw.bs_step_LineEdit.setText(self.field_to_mw(self._eproc_logic.bs_step))
-        self._mw.bs_stop_LineEdit.setText(self.field_to_mw(self._eproc_logic.bs_stop))
+        self._mw.bs_start_LineEdit.setText(self.field_to_freq(self._eproc_logic.bs_start))
+        self._mw.bs_step_LineEdit.setText(self.field_to_freq(self._eproc_logic.bs_step))
+        self._mw.bs_stop_LineEdit.setText(self.field_to_freq(self._eproc_logic.bs_stop))
 
         self._mw.lia_range_ComboBox.setCurrentText(self._eproc_logic.lia_range)
         self._mw.lia_uac_DoubleSpinBox.setValue(self._eproc_logic.lia_uac)
-        self._mw.lia_acdc_coupling_ComboBox.setCurrentText(self._eproc_logic.lia_coupling)
-        self._mw.lia_frequency_DoubleSpinBox.setValue(self._eproc_logic.lia_int_ref_freq)
+        self._mw.lia_coupling_ComboBox.setCurrentText(self._eproc_logic.lia_coupling)
+        self._mw.lia_frequency_DoubleSpinBox.setValue(self._eproc_logic.lia_int_freq)
         self._mw.lia_taua_ComboBox.setCurrentText(self.tau_float_to_str(self._eproc_logic.lia_tauA))
         self._mw.lia_phasea_DoubleSpinBox.setValue(self._eproc_logic.lia_phaseA)
         self._mw.lia_taub_ComboBox.setCurrentText(self.tau_float_to_str(self._eproc_logic.lia_tauB))
@@ -275,7 +274,7 @@ class EPRoCGui(GUIBase):
         self._mw.n_sweep_SpinBox.setValue(self._eproc_logic.n_sweep)
         self._mw.n_accumulation_SpinBox.setValue(self._eproc_logic.n_accumulation)
 
-        self._mw.f_multiplier_ComboBox.setCurrentText(str(self._eproc_logic.f_multiplier))
+        self._mw.frequency_multiplier_ComboBox.setCurrentText(str(self._eproc_logic.f_multiplier))
 
         self._mw.psb_voltage_outp1_DoubleSpinBox.setValue(self._eproc_logic.psb_voltage_outp1)
         self._mw.psb_voltage_outp2_DoubleSpinBox.setValue(self._eproc_logic.psb_voltage_outp2)
@@ -286,13 +285,10 @@ class EPRoCGui(GUIBase):
         self._mw.psa_current_max_outp1_DoubleSpinBox.setValue(self._eproc_logic.psa_current_max_outp1)
         self._mw.psa_current_max_outp2_DoubleSpinBox.setValue(self._eproc_logic.psa_current_max_outp2)
 
-        self._mw.ref_shape_ComboBox.setCurrentText(self._eproc_logic.ref_shape)
         self._mw.ref_frequency_DoubleSpinBox.setValue(self._eproc_logic.ref_freq)
-        self._mw.ref_deviation_DoubleSpinBox.setValue(self._eproc_logic.ref_deviation)
-        self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(self._eproc_logic.ref_deviation))
-        self._mw.ref_deviation_ppHz_LineEdit.setText(
-        self.multiplied_mw(2 * self._eproc_logic.ref_deviation))  # factor 2 to have pp
-        self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(2 * self._eproc_logic.ref_deviation))
+        self._mw.ref_deviation_DoubleSpinBox.setValue(self._eproc_logic.ref_dev)
+        self._mw.ref_deviation_pp_LineEdit.setText(self.freq_to_field(self._eproc_logic.ref_dev) + '='
+                                                   + self.multiplied_mw(2*self._eproc_logic.ref_dev))
         self._mw.ref_mode_ComboBox.setCurrentText(self._eproc_logic.ref_mode)
 
         ########################################################################
@@ -313,7 +309,7 @@ class EPRoCGui(GUIBase):
         self._mw.bs_stop_DoubleSpinBox.editingFinished.connect(self.change_bs_params)
 
         self._mw.lia_range_ComboBox.currentTextChanged.connect(self.change_lia_params)
-        self._mw.lia_acdc_coupling_ComboBox.currentTextChanged.connect(self.change_lia_params)
+        self._mw.lia_coupling_ComboBox.currentTextChanged.connect(self.change_lia_params)
         self._mw.lia_taua_ComboBox.currentTextChanged.connect(self.change_lia_params)
         self._mw.lia_taub_ComboBox.currentTextChanged.connect(self.change_lia_params)
         self._mw.lia_slope_ComboBox.currentTextChanged.connect(self.change_lia_params)
@@ -326,16 +322,15 @@ class EPRoCGui(GUIBase):
         self._mw.lia_waiting_time_factor_DoubleSpinBox.editingFinished.connect(self.change_lia_params)
 
         self._mw.fs_RadioButton.toggled.connect(self.on_off_sweep)
-        self._mw.ref_RadioButton.toggled.connect(self.on_off_external_reference)
+        self._mw.ref_RadioButton.toggled.connect(self.on_off_lia_ext_ref)
         self._mw.psb_RadioButton.toggled.connect(self.on_off_psb)
         self._mw.psa_RadioButton.toggled.connect(self.on_off_psa)
 
         self._mw.n_sweep_SpinBox.editingFinished.connect(self.change_scan_params)
         self._mw.n_accumulation_SpinBox.editingFinished.connect(self.change_scan_params)
 
-        self._mw.f_multiplier_ComboBox.currentTextChanged.connect(self.change_f_multiplier)
+        self._mw.frequency_multiplier_ComboBox.currentTextChanged.connect(self.change_frequency_multiplier)
 
-        self._mw.ref_shape_ComboBox.currentTextChanged.connect(self.change_ref_params)
         self._mw.ref_frequency_DoubleSpinBox.editingFinished.connect(self.change_ref_params)
         self._mw.ref_deviation_DoubleSpinBox.editingFinished.connect(self.change_ref_params)
         self._mw.ref_mode_ComboBox.currentTextChanged.connect(self.change_ref_params)
@@ -367,11 +362,11 @@ class EPRoCGui(GUIBase):
         self.sigFsOff.connect(self._eproc_logic.fs_off, QtCore.Qt.QueuedConnection)
         self.sigLiaExtRefOn.connect(self._eproc_logic.lia_ext_ref_on, QtCore.Qt.QueuedConnection)
         self.sigLiaExtRefOff.connect(self._eproc_logic.lia_ext_ref_off, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyBoardOn.connect(self._eproc_logic.psb_on, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyBoardOff.connect(self._eproc_logic.psb_off, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyAmplifierOn.connect(self._eproc_logic.psa_on, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyAmplifierOff.connect(self._eproc_logic.psa_off, QtCore.Qt.QueuedConnection)
-        self.sigFrequencyMultiplierChanged.connect(self._eproc_logic.set_f_multiplier,
+        self.sigPsbOn.connect(self._eproc_logic.psb_on, QtCore.Qt.QueuedConnection)
+        self.sigPsbOff.connect(self._eproc_logic.psb_off, QtCore.Qt.QueuedConnection)
+        self.sigPsaOn.connect(self._eproc_logic.psa_on, QtCore.Qt.QueuedConnection)
+        self.sigPsaOff.connect(self._eproc_logic.psa_off, QtCore.Qt.QueuedConnection)
+        self.sigFrequencyMultiplierChanged.connect(self._eproc_logic.set_frequency_multiplier,
                                                    QtCore.Qt.QueuedConnection)
 
         self.sigFsParamsChanged.connect(self._eproc_logic.set_fs_parameters, QtCore.Qt.QueuedConnection)
@@ -379,8 +374,8 @@ class EPRoCGui(GUIBase):
         self.sigLiaParamsChanged.connect(self._eproc_logic.set_lia_parameters, QtCore.Qt.QueuedConnection)
         self.sigRefParamsChanged.connect(self._eproc_logic.set_ref_parameters, QtCore.Qt.QueuedConnection)
         self.sigScanParamsChanged.connect(self._eproc_logic.set_eproc_scan_parameters, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyBoardParamsChanged.connect(self._eproc_logic.set_psb_parameters, QtCore.Qt.QueuedConnection)
-        self.sigPowerSupplyAmplifierParamsChanged.connect(self._eproc_logic.set_psa_parameters, QtCore.Qt.QueuedConnection)
+        self.sigPsbParamsChanged.connect(self._eproc_logic.set_psb_parameters, QtCore.Qt.QueuedConnection)
+        self.sigPsaParamsChanged.connect(self._eproc_logic.set_psa_parameters, QtCore.Qt.QueuedConnection)
 
         self.sigSaveMeasurement.connect(self._eproc_logic.save_eproc_data, QtCore.Qt.QueuedConnection)
 
@@ -434,18 +429,18 @@ class EPRoCGui(GUIBase):
         self.sigFsOff.disconnect()
         self.sigLiaExtRefOn.disconnect()
         self.sigLiaExtRefOff.disconnect()
-        self.sigPowerSupplyBoardOn.disconnect()
-        self.sigPowerSupplyBoardOff.disconnect()
-        self.sigPowerSupplyAmplifierOn.disconnect()
-        self.sigPowerSupplyAmplifierOff.disconnect()
+        self.sigPsbOn.disconnect()
+        self.sigPsbOff.disconnect()
+        self.sigPsaOn.disconnect()
+        self.sigPsaOff.disconnect()
         self.sigFsParamsChanged.disconnect()
         self.sigBsParamsChanged.disconnect()
         self.sigLiaParamsChanged.disconnect()
         self.sigRefParamsChanged.disconnect()
         self.sigScanParamsChanged.disconnect()
         self.sigFrequencyMultiplierChanged.disconnect()
-        self.sigPowerSupplyBoardParamsChanged.disconnect()
-        self.sigPowerSupplyAmplifierParamsChanged.disconnect()
+        self.sigPsbParamsChanged.disconnect()
+        self.sigPsaParamsChanged.disconnect()
         self.sigSaveMeasurement.disconnect()
 
         self._mw.action_Analysis.triggered.disconnect()
@@ -469,7 +464,7 @@ class EPRoCGui(GUIBase):
         self._mw.bs_stop_DoubleSpinBox.editingFinished.disconnect()
 
         self._mw.lia_range_ComboBox.currentTextChanged.disconnect()
-        self._mw.lia_acdc_coupling_ComboBox.currentTextChanged.disconnect()
+        self._mw.lia_coupling_ComboBox.currentTextChanged.disconnect()
         self._mw.lia_taua_ComboBox.currentTextChanged.disconnect()
         self._mw.lia_taub_ComboBox.currentTextChanged.disconnect()
         self._mw.lia_slope_ComboBox.currentTextChanged.disconnect()
@@ -489,12 +484,11 @@ class EPRoCGui(GUIBase):
         self._mw.n_sweep_SpinBox.editingFinished.disconnect()
         self._mw.n_accumulation_SpinBox.editingFinished.disconnect()
 
-        self._mw.ref_shape_ComboBox.currentTextChanged.disconnect()
         self._mw.ref_frequency_DoubleSpinBox.editingFinished.disconnect()
         self._mw.ref_deviation_DoubleSpinBox.editingFinished.disconnect()
         self._mw.ref_mode_ComboBox.currentTextChanged.disconnect()
 
-        self._mw.f_multiplier_ComboBox.currentTextChanged.disconnect()
+        self._mw.frequency_multiplier_ComboBox.currentTextChanged.disconnect()
 
         self._mw.psb_voltage_outp1_DoubleSpinBox.editingFinished.disconnect()
         self._mw.psb_voltage_outp2_DoubleSpinBox.editingFinished.disconnect()
@@ -632,28 +626,29 @@ class EPRoCGui(GUIBase):
 
         if self._eproc_logic.is_eproc_running:
             for widget_name in self._mw.__dict__.keys():
-                if widget_name.endswith('Box') or widget_name.endswith('Button') or widget_name.endswith('LineEdit'):
+                if widget_name.endswith('DockWidgetContents'):
                     widg = getattr(self._mw, widget_name)
                     widg.setEnabled(False)
             self._mw.action_run_stop.setChecked(True)
         else:
             # Set enabled every Box and Button and LineEdit in the gui
             for widget_name in self._mw.__dict__.keys():
-                if widget_name.endswith('Box') or widget_name.endswith('Button') or widget_name.endswith('LineEdit'):
+                if not widget_name.endswith(('Button', 'Group')):
                     widg = getattr(self._mw, widget_name)
                     widg.setEnabled(True)
-            # Set disabled Boxes depending on status
             self._mw.action_run_stop.setChecked(False)
+
+            # Set disabled Boxes depending on status
             if self._eproc_logic.is_fs:
                 for widget_name in self._mw.__dict__.keys():
-                    if widget_name.startswith('bs'):
+                    if widget_name.startswith('bs') and not widget_name.endswith('Contents'):
                         widg = getattr(self._mw, widget_name)
                         widg.setEnabled(False)
                 self._mw.bs_RadioButton.setEnabled(True)
                 self._mw.fs_RadioButton.setChecked(True)
             else:
                 for widget_name in self._mw.__dict__.keys():
-                    if widget_name.startswith('fs'):
+                    if widget_name.startswith('fs') and not widget_name.endswith('Contents'):
                         widg = getattr(self._mw, widget_name)
                         widg.setEnabled(False)
                 self._mw.fs_RadioButton.setEnabled(True)
@@ -700,6 +695,7 @@ class EPRoCGui(GUIBase):
             self._mw.fs_field_DoubleSpinBox.blockSignals(True)
             self._mw.fs_field_DoubleSpinBox.setValue(param)
             self._mw.fs_field_DoubleSpinBox.blockSignals(False)
+            self._mw.fs_field_LineEdit.setText(self.field_to_freq(param))
 
         param = param_dict.get('fs_mw_power')
         if param is not None:
@@ -712,21 +708,21 @@ class EPRoCGui(GUIBase):
             self._mw.fs_start_DoubleSpinBox.blockSignals(True)
             self._mw.fs_start_DoubleSpinBox.setValue(param)
             self._mw.fs_start_DoubleSpinBox.blockSignals(False)
-            self._mw.fs_start_LineEdit.setText(self.mw_to_field(param))
+            self._mw.fs_start_LineEdit.setText(self.freq_to_field(param))
 
         param = param_dict.get('fs_step')
         if param is not None:
             self._mw.fs_step_DoubleSpinBox.blockSignals(True)
             self._mw.fs_step_DoubleSpinBox.setValue(param)
             self._mw.fs_step_DoubleSpinBox.blockSignals(False)
-            self._mw.fs_step_LineEdit.setText(self.mw_to_field(param))
+            self._mw.fs_step_LineEdit.setText(self.freq_to_field(param))
 
         param = param_dict.get('fs_stop')
         if param is not None:
             self._mw.fs_stop_DoubleSpinBox.blockSignals(True)
             self._mw.fs_stop_DoubleSpinBox.setValue(param)
             self._mw.fs_stop_DoubleSpinBox.blockSignals(False)
-            self._mw.fs_stop_LineEdit.setText(self.mw_to_field(param))
+            self._mw.fs_stop_LineEdit.setText(self.freq_to_field(param))
 
         # Field sweep parameters Dock widget
         param = param_dict.get('bs_frequency')
@@ -742,27 +738,26 @@ class EPRoCGui(GUIBase):
             self._mw.bs_mw_power_DoubleSpinBox.setValue(param)
             self._mw.bs_mw_power_DoubleSpinBox.blockSignals(False)
 
-
         param = param_dict.get('bs_start')
         if param is not None:
             self._mw.bs_start_DoubleSpinBox.blockSignals(True)
             self._mw.bs_start_DoubleSpinBox.setValue(param)
             self._mw.bs_start_DoubleSpinBox.blockSignals(False)
-            self._mw.bs_start_LineEdit.setText(self.field_to_mw(param))
+            self._mw.bs_start_LineEdit.setText(self.field_to_freq(param))
 
         param = param_dict.get('bs_step')
         if param is not None:
             self._mw.bs_step_DoubleSpinBox.blockSignals(True)
             self._mw.bs_step_DoubleSpinBox.setValue(param)
             self._mw.bs_step_DoubleSpinBox.blockSignals(False)
-            self._mw.bs_step_LineEdit.setText(self.field_to_mw(param))
+            self._mw.bs_step_LineEdit.setText(self.field_to_freq(param))
 
         param = param_dict.get('bs_stop')
         if param is not None:
             self._mw.bs_stop_DoubleSpinBox.blockSignals(True)
             self._mw.bs_stop_DoubleSpinBox.setValue(param)
             self._mw.bs_stop_DoubleSpinBox.blockSignals(False)
-            self._mw.bs_stop_LineEdit.setText(self.field_to_mw(param))
+            self._mw.bs_stop_LineEdit.setText(self.field_to_freq(param))
 
         # Lockin parameters Dock widget
         param = param_dict.get('lia_range')
@@ -779,11 +774,11 @@ class EPRoCGui(GUIBase):
 
         param = param_dict.get('lia_coupling')
         if param is not None:
-            self._mw.lia_acdc_coupling_ComboBox.blockSignals(True)
-            self._mw.lia_acdc_coupling_ComboBox.setCurrentText(param)
-            self._mw.lia_acdc_coupling_ComboBox.blockSignals(False)
+            self._mw.lia_coupling_ComboBox.blockSignals(True)
+            self._mw.lia_coupling_ComboBox.setCurrentText(param)
+            self._mw.lia_coupling_ComboBox.blockSignals(False)
 
-        param = param_dict.get('lia_int_ref_freq')
+        param = param_dict.get('lia_int_freq')
         if param is not None:
             self._mw.lia_frequency_DoubleSpinBox.blockSignals(True)
             self._mw.lia_frequency_DoubleSpinBox.setValue(param)
@@ -795,7 +790,7 @@ class EPRoCGui(GUIBase):
             self._mw.lia_taua_ComboBox.setCurrentText(self.tau_float_to_str(param))
             self._mw.lia_taua_ComboBox.blockSignals(False)
 
-        param = param_dict.get('lia_phase_A')
+        param = param_dict.get('lia_phaseA')
         if param is not None:
             self._mw.lia_phasea_DoubleSpinBox.blockSignals(True)
             self._mw.lia_phasea_DoubleSpinBox.setValue(param)
@@ -837,28 +832,21 @@ class EPRoCGui(GUIBase):
             self._mw.lia_configuration_ComboBox.setCurrentText(param)
             self._mw.lia_configuration_ComboBox.blockSignals(False)
 
-        # Order from here
-        param = param_dict.get('fm_shape')
-        if param is not None:
-            self._mw.ref_shape_ComboBox.blockSignals(True)
-            self._mw.ref_shape_ComboBox.setCurrentText(param)
-            self._mw.ref_shape_ComboBox.blockSignals(False)
-
-        param = param_dict.get('fm_ext_freq')
+        param = param_dict.get('ref_freq')
         if param is not None:
             self._mw.ref_frequency_DoubleSpinBox.blockSignals(True)
             self._mw.ref_frequency_DoubleSpinBox.setValue(param)
             self._mw.ref_frequency_DoubleSpinBox.blockSignals(False)
 
-        param = param_dict.get('ref_deviation')
+        param = param_dict.get('ref_dev')
         if param is not None:
             self._mw.ref_deviation_DoubleSpinBox.blockSignals(True)
             self._mw.ref_deviation_DoubleSpinBox.setValue(param)
             self._mw.ref_deviation_DoubleSpinBox.blockSignals(False)
-            self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(2 * param))  # factor 2 to have pp
-            self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(2 * param))
+            self._mw.ref_deviation_pp_LineEdit.setText(self.multiplied_mw(2 * param) + '='
+                                                       + self.freq_to_field(2 * param))
 
-        param = param_dict.get('fm_mode')
+        param = param_dict.get('ref_mode')
         if param is not None:
             self._mw.ref_mode_ComboBox.blockSignals(True)
             self._mw.ref_mode_ComboBox.setCurrentText(param)
@@ -878,15 +866,16 @@ class EPRoCGui(GUIBase):
 
         param = param_dict.get('f_multiplier')
         if param is not None:
-            self._mw.f_multiplier_ComboBox.blockSignals(True)
-            self._mw.f_multiplier_ComboBox.setCurrentText(str(param))
-            self._mw.f_multiplier_ComboBox.blockSignals(False)
-            self._mw.fs_start_LineEdit.setText(self.mw_to_field(self._eproc_logic.fs_start))
-            self._mw.fs_step_LineEdit.setText(self.mw_to_field(self._eproc_logic.fs_step))
-            self._mw.fs_stop_LineEdit.setText(self.mw_to_field(self._eproc_logic.fs_stop))
+            self._mw.frequency_multiplier_ComboBox.blockSignals(True)
+            self._mw.frequency_multiplier_ComboBox.setCurrentText(str(param))
+            self._mw.frequency_multiplier_ComboBox.blockSignals(False)
+            self._mw.fs_field_LineEdit.setText(self.field_to_freq(self._eproc_logic.fs_field))
+            self._mw.fs_start_LineEdit.setText(self.freq_to_field(self._eproc_logic.fs_start))
+            self._mw.fs_step_LineEdit.setText(self.freq_to_field(self._eproc_logic.fs_step))
+            self._mw.fs_stop_LineEdit.setText(self.freq_to_field(self._eproc_logic.fs_stop))
             self._mw.bs_frequency_LineEdit.setText(self.multiplied_mw(self._eproc_logic.bs_frequency))
-            self._mw.ref_deviation_ppHz_LineEdit.setText(self.multiplied_mw(2 * self._eproc_logic.ref_deviation))  # factor 2 to have pp
-            self._mw.ref_deviation_ppG_LineEdit.setText(self.mw_to_field(2 * self._eproc_logic.ref_deviation))
+            self._mw.ref_deviation_pp_LineEdit.setText(self.multiplied_mw(2 * self._eproc_logic.ref_dev) + '='
+                                                       + self.freq_to_field(2 * self._eproc_logic.ref_dev))
 
         param = param_dict.get('psb_voltage_outp1')
         if param is not None:
@@ -960,7 +949,7 @@ class EPRoCGui(GUIBase):
         """ Change lockin parameters """
         input_range = self._mw.lia_range_ComboBox.currentText()
         uac = self._mw.lia_uac_DoubleSpinBox.value()
-        coupling = self._mw.lia_acdc_coupling_ComboBox.currentText()
+        coupling = self._mw.lia_coupling_ComboBox.currentText()
         int_ref_freq = self._mw.lia_frequency_DoubleSpinBox.value()
         tauA = self.tau_str_to_float(self._mw.lia_taua_ComboBox.currentText())
         phaseA = self._mw.lia_phasea_DoubleSpinBox.value()
@@ -971,7 +960,7 @@ class EPRoCGui(GUIBase):
         slope = self._mw.lia_slope_ComboBox.currentText()
         configuration = self._mw.lia_configuration_ComboBox.currentText()
         self.sigLiaParamsChanged.emit(input_range, uac, coupling, int_ref_freq, tauA, phaseA, tauB, phaseB,
-                                         waiting_time_factor, harmonic, slope, configuration)
+                                      waiting_time_factor, harmonic, slope, configuration)
         return
 
     def on_off_sweep(self, is_checked):
@@ -982,7 +971,7 @@ class EPRoCGui(GUIBase):
             self.sigFsOff.emit()
         return
 
-    def on_off_external_reference(self, is_checked):
+    def on_off_lia_ext_ref(self, is_checked):
         """Select between internal and external reference of the lockin"""
         if is_checked:
             self.sigLiaExtRefOn.emit()
@@ -992,11 +981,10 @@ class EPRoCGui(GUIBase):
 
     def change_ref_params(self):
         """ Change parameters of the reference signal"""
-        shape = self._mw.ref_shape_ComboBox.currentText()
         freq = self._mw.ref_frequency_DoubleSpinBox.value()
-        mode = self._mw.ref_mode_ComboBox.currentText()
         dev = self._mw.ref_deviation_DoubleSpinBox.value()
-        self.sigRefParamsChanged.emit(shape, freq, mode, dev)
+        mode = self._mw.ref_mode_ComboBox.currentText()
+        self.sigRefParamsChanged.emit(freq, dev, mode)
         return
 
     def change_scan_params(self):
@@ -1006,8 +994,8 @@ class EPRoCGui(GUIBase):
         self.sigScanParamsChanged.emit(n_sweep, n_accumulation)
         return
 
-    def change_f_multiplier(self):
-        multiplier = int(self._mw.f_multiplier_ComboBox.currentText())
+    def change_frequency_multiplier(self):
+        multiplier = int(self._mw.frequency_multiplier_ComboBox.currentText())
         self.sigFrequencyMultiplierChanged.emit(multiplier)
         return
 
@@ -1038,13 +1026,13 @@ class EPRoCGui(GUIBase):
             self._mw.psb_voltage_outp2_DoubleSpinBox.setEnabled(False)
             self._mw.psb_current_max_outp1_DoubleSpinBox.setEnabled(False)
             self._mw.psb_current_max_outp2_DoubleSpinBox.setEnabled(False)
-            self.sigPowerSupplyBoardOn.emit()
+            self.sigPsbOn.emit()
         else:
             self._mw.psa_voltage_outp1_DoubleSpinBox.setEnabled(False)
             self._mw.psa_voltage_outp2_DoubleSpinBox.setEnabled(False)
             self._mw.psa_current_max_outp1_DoubleSpinBox.setEnabled(False)
             self._mw.psa_current_max_outp2_DoubleSpinBox.setEnabled(False)
-            self.sigPowerSupplyAmplifierOn.emit()
+            self.sigPsaOn.emit()
         return
 
     def power_supply_on_rejected(self):
@@ -1064,13 +1052,13 @@ class EPRoCGui(GUIBase):
             self._mw.psb_voltage_outp2_DoubleSpinBox.setEnabled(True)
             self._mw.psb_current_max_outp1_DoubleSpinBox.setEnabled(True)
             self._mw.psb_current_max_outp2_DoubleSpinBox.setEnabled(True)
-            self.sigPowerSupplyBoardOff.emit()
+            self.sigPsbOff.emit()
         else:
             self._mw.psa_voltage_outp1_DoubleSpinBox.setEnabled(True)
             self._mw.psa_voltage_outp2_DoubleSpinBox.setEnabled(True)
             self._mw.psa_current_max_outp1_DoubleSpinBox.setEnabled(True)
             self._mw.psa_current_max_outp2_DoubleSpinBox.setEnabled(True)
-            self.sigPowerSupplyAmplifierOff.emit()
+            self.sigPsaOff.emit()
         return
 
     def power_supply_off_rejected(self):
@@ -1089,7 +1077,7 @@ class EPRoCGui(GUIBase):
         v2 = self._mw.psb_voltage_outp2_DoubleSpinBox.value()
         maxi1 = self._mw.psb_current_max_outp1_DoubleSpinBox.value()
         maxi2 = self._mw.psb_current_max_outp2_DoubleSpinBox.value()
-        self.sigPowerSupplyBoardParamsChanged.emit(v1, v2, maxi1, maxi2)
+        self.sigPsbParamsChanged.emit(v1, v2, maxi1, maxi2)
         return
 
     def on_off_psa(self, is_checked):
@@ -1119,7 +1107,7 @@ class EPRoCGui(GUIBase):
         v2 = self._mw.psa_voltage_outp2_DoubleSpinBox.value()
         maxi1 = self._mw.psa_current_max_outp1_DoubleSpinBox.value()
         maxi2 = self._mw.psa_current_max_outp2_DoubleSpinBox.value()
-        self.sigPowerSupplyAmplifierParamsChanged.emit(v1, v2, maxi1, maxi2)
+        self.sigPsaParamsChanged.emit(v1, v2, maxi1, maxi2)
         return
 
     def getLoadFile(self):
@@ -1159,13 +1147,13 @@ class EPRoCGui(GUIBase):
         """ Open the settings menu """
         self._sd.show()
 
-    def field_to_mw(self, field):
+    def field_to_freq(self, field):
         return str(round((field * 2.8), 2)) + 'MHz'
 
     def multiplied_mw(self, freq):
         # return str(round(freq * self._eproc_logic.f_multiplier / 1000000, 2)) + ' MHz'
         return str(freq * self._eproc_logic.f_multiplier / 1000000) + ' MHz'
 
-    def mw_to_field(self, freq):
+    def freq_to_field(self, freq):
         return str(round(freq * self._eproc_logic.f_multiplier * 1e-6 / 2.8, 5)) + ' G'
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1437</width>
-    <height>913</height>
+    <width>1449</width>
+    <height>923</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,7 +71,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1437</width>
+     <width>1449</width>
      <height>26</height>
     </rect>
    </property>
@@ -92,7 +92,7 @@
    <addaction name="menu_Options"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QToolBar" name="sca_ToolBar">
+  <widget class="QToolBar" name="scan_ToolBar">
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
@@ -105,7 +105,7 @@
    <addaction name="action_run_stop"/>
    <addaction name="action_stop_next_sweep"/>
   </widget>
-  <widget class="QDockWidget" name="lia_parameters_DockWidget">
+  <widget class="QDockWidget" name="lia_ref_parameters_DockWidget">
    <property name="maximumSize">
     <size>
      <width>524287</width>
@@ -113,204 +113,111 @@
     </size>
    </property>
    <property name="windowTitle">
-    <string>Lockin Parameters</string>
+    <string>Lockin and modulation parameters</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents">
+   <widget class="QWidget" name="lia_ref_DockWidgetContents">
     <layout class="QGridLayout" name="gridLayout_2">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_19">
-       <property name="text">
-        <string>Range (V):</string>
+     <item row="3" column="3">
+      <widget class="QLineEdit" name="ref_deviation_pp_LineEdit">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="lia_range_ComboBox">
+     <item row="14" column="2">
+      <widget class="QLabel" name="label_20">
+       <property name="text">
+        <string>Configuration:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="3">
+      <widget class="QComboBox" name="lia_configuration_ComboBox">
        <item>
         <property name="text">
-         <string>0.1</string>
+         <string>A</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>1</string>
+         <string>A-B</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>10</string>
+         <string>A&amp;B</string>
         </property>
        </item>
       </widget>
      </item>
-     <item row="0" column="2">
+     <item row="14" column="1">
+      <widget class="QSpinBox" name="lia_harmonic_SpinBox">
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>15</number>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="0">
+      <widget class="QLabel" name="label_16">
+       <property name="text">
+        <string>Harmonic:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="0">
       <widget class="QLabel" name="label_17">
        <property name="text">
         <string>Amplitude:</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="3">
-      <widget class="ScienDSpinBox" name="lia_uac_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>V</string>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_9">
-       <property name="text">
-        <string>Coupling:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="lia_acdc_coupling_ComboBox">
-       <item>
-        <property name="text">
-         <string>dc</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>ac</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="1" column="2">
+     <item row="13" column="2">
       <widget class="QLabel" name="label_7">
        <property name="text">
         <string>Frequency:</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="3">
-      <widget class="ScienDSpinBox" name="lia_frequency_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>Hz</string>
-       </property>
-       <property name="decimals">
-        <number>6</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
+     <item row="7" column="0" colspan="4">
+      <widget class="Line" name="line">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_21">
+     <item row="12" column="0">
+      <widget class="QLabel" name="label_19">
        <property name="text">
-        <string>tau A:</string>
+        <string>Range (V):</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QComboBox" name="lia_taua_ComboBox"/>
-     </item>
-     <item row="2" column="2">
+     <item row="11" column="0">
       <widget class="QLabel" name="label_10">
        <property name="text">
         <string>Phase A:</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="3">
-      <widget class="ScienDSpinBox" name="lia_phasea_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>°</string>
-       </property>
-       <property name="decimals">
-        <number>1</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_22">
-       <property name="text">
-        <string>tau B:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QComboBox" name="lia_taub_ComboBox"/>
-     </item>
-     <item row="3" column="2">
-      <widget class="QLabel" name="label_18">
-       <property name="text">
-        <string>Phase B:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="3">
-      <widget class="ScienDSpinBox" name="lia_phaseb_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>°</string>
-       </property>
-       <property name="decimals">
-        <number>1</number>
-       </property>
-       <property name="maximum">
-        <double>1000000000.000000000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.010000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_12">
-       <property name="text">
-        <string>Waiting Time Factor:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1">
+     <item row="10" column="1">
       <widget class="ScienDSpinBox" name="lia_waiting_time_factor_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -332,110 +239,62 @@
        </property>
       </widget>
      </item>
-     <item row="4" column="2">
-      <widget class="QLabel" name="label_16">
-       <property name="text">
-        <string>Harmonic:</string>
+     <item row="11" column="1">
+      <widget class="ScienDSpinBox" name="lia_phasea_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
-      </widget>
-     </item>
-     <item row="4" column="3">
-      <widget class="QSpinBox" name="lia_harmonic_SpinBox">
-       <property name="minimum">
+       <property name="suffix">
+        <string>°</string>
+       </property>
+       <property name="decimals">
         <number>1</number>
        </property>
        <property name="maximum">
-        <number>15</number>
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_11">
+     <item row="9" column="1">
+      <widget class="QComboBox" name="lia_taua_ComboBox"/>
+     </item>
+     <item row="13" column="1">
+      <widget class="ScienDSpinBox" name="lia_uac_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>V</string>
+       </property>
+       <property name="decimals">
+        <number>4</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="2">
+      <widget class="QLabel" name="label_18">
        <property name="text">
-        <string>Slope (dB/oct):</string>
+        <string>Phase B:</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
-      <widget class="QComboBox" name="lia_slope_ComboBox">
-       <item>
-        <property name="text">
-         <string>6</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>12</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>24</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="5" column="2">
-      <widget class="QLabel" name="label_20">
-       <property name="text">
-        <string>Configuration:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="3">
-      <widget class="QComboBox" name="lia_configuration_ComboBox">
-       <item>
-        <property name="text">
-         <string>A</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>A-B</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>A&amp;B</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="6" column="0">
-      <widget class="QRadioButton" name="ref_RadioButton">
-       <property name="text">
-        <string>External reference</string>
-       </property>
-       <property name="autoExclusive">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="0">
-      <widget class="QLabel" name="label_14">
-       <property name="text">
-        <string>Shape:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="1">
-      <widget class="QComboBox" name="ref_shape_ComboBox">
-       <item>
-        <property name="text">
-         <string>Sine</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="7" column="2">
-      <widget class="QLabel" name="label_15">
-       <property name="text">
-        <string>Frequency:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="3">
-      <widget class="ScienDSpinBox" name="ref_frequency_DoubleSpinBox">
+     <item row="13" column="3">
+      <widget class="ScienDSpinBox" name="lia_frequency_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -456,35 +315,150 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="0">
-      <widget class="QLabel" name="label_8">
+     <item row="0" column="0">
+      <widget class="QRadioButton" name="ref_RadioButton">
        <property name="text">
-        <string>Mode:</string>
+        <string>External reference</string>
+       </property>
+       <property name="autoExclusive">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
-      <widget class="QComboBox" name="ref_mode_ComboBox">
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_21">
+       <property name="text">
+        <string>tau A:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="12" column="3">
+      <widget class="QComboBox" name="lia_coupling_ComboBox">
        <item>
         <property name="text">
-         <string>High Bandwidth</string>
+         <string>dc</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Low Noise</string>
+         <string>ac</string>
         </property>
        </item>
       </widget>
      </item>
-     <item row="8" column="2">
+     <item row="12" column="2">
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>Coupling:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="2">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Slope (dB/oct):</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="2">
+      <widget class="QLabel" name="label_22">
+       <property name="text">
+        <string>tau B:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="3">
+      <widget class="ScienDSpinBox" name="lia_phaseb_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>°</string>
+       </property>
+       <property name="decimals">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>Waiting Time Factor:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="3">
+      <widget class="QComboBox" name="lia_taub_ComboBox"/>
+     </item>
+     <item row="10" column="3">
+      <widget class="QComboBox" name="lia_slope_ComboBox">
+       <item>
+        <property name="text">
+         <string>6</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>12</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>24</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="12" column="1">
+      <widget class="QComboBox" name="lia_range_ComboBox">
+       <item>
+        <property name="text">
+         <string>0.1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>10</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_15">
+       <property name="text">
+        <string>Frequency:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
       <widget class="QLabel" name="label_5">
        <property name="text">
         <string>Deviation:</string>
        </property>
       </widget>
      </item>
-     <item row="8" column="3">
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>Mode:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
       <widget class="ScienDSpinBox" name="ref_deviation_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -506,41 +480,47 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="0">
+     <item row="3" column="2">
       <widget class="QLabel" name="label_44">
        <property name="text">
         <string>Deviation pp:</string>
        </property>
       </widget>
      </item>
-     <item row="9" column="3">
-      <widget class="QLineEdit" name="ref_deviation_ppG_LineEdit">
-       <property name="readOnly">
-        <bool>true</bool>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="ref_mode_ComboBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>150</width>
+         <height>20</height>
+        </size>
+       </property>
+       <item>
+        <property name="text">
+         <string>High Bandwidth</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Low Noise</string>
+        </property>
+       </item>
       </widget>
      </item>
-     <item row="9" column="1">
-      <widget class="QLineEdit" name="ref_deviation_ppHz_LineEdit">
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-  </widget>
-  <widget class="QDockWidget" name="mwsweep_eproc_control_DockWidget">
-   <property name="windowTitle">
-    <string>Microwave sweep parameters</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>4</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetContents_3">
-    <layout class="QGridLayout" name="gridLayout_6">
-     <item row="1" column="3">
-      <widget class="ScienDSpinBox" name="fs_mw_power_DoubleSpinBox">
+     <item row="2" column="1">
+      <widget class="ScienDSpinBox" name="ref_frequency_DoubleSpinBox">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -548,45 +528,10 @@
         </sizepolicy>
        </property>
        <property name="suffix">
-        <string>dBm</string>
+        <string>Hz</string>
        </property>
        <property name="decimals">
-        <number>5</number>
-       </property>
-       <property name="minimum">
-        <double>-1000.000000000000000</double>
-       </property>
-       <property name="maximum">
-        <double>100.000000000000000</double>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="2">
-      <widget class="QLabel" name="label_2">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>MW Power :</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QDoubleSpinBox" name="fs_field_DoubleSpinBox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="suffix">
-        <string>G</string>
-       </property>
-       <property name="decimals">
-        <number>1</number>
+        <number>6</number>
        </property>
        <property name="maximum">
         <double>1000000000.000000000000000</double>
@@ -596,6 +541,18 @@
        </property>
       </widget>
      </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="eproc_control_fs_DockWidget">
+   <property name="windowTitle">
+    <string>Frequency sweep parameters</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>4</number>
+   </attribute>
+   <widget class="QWidget" name="fs_DockWidgetContents">
+    <layout class="QGridLayout" name="gridLayout_6">
      <item row="0" column="0">
       <widget class="QRadioButton" name="fs_RadioButton">
        <property name="text">
@@ -622,7 +579,77 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="0" colspan="4">
+     <item row="1" column="1">
+      <widget class="QDoubleSpinBox" name="fs_field_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>G</string>
+       </property>
+       <property name="decimals">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <double>1000000000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.010000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLabel" name="label_2">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>MW Power :</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="ScienDSpinBox" name="fs_mw_power_DoubleSpinBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string>dBm</string>
+       </property>
+       <property name="decimals">
+        <number>5</number>
+       </property>
+       <property name="minimum">
+        <double>-1000.000000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>100.000000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="fs_field_LineEdit">
+       <property name="maximumSize">
+        <size>
+         <width>150</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0" colspan="4">
       <widget class="QGroupBox" name="groupBox">
        <property name="title">
         <string>Frequency range</string>
@@ -742,14 +769,14 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QDockWidget" name="fieldsweep_eproc_control_DockWidget">
+  <widget class="QDockWidget" name="eproc_control_bs_DockWidget">
    <property name="windowTitle">
     <string>Field sweep parameters</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>4</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_6">
+   <widget class="QWidget" name="bs_DockWidgetContents">
     <layout class="QGridLayout" name="gridLayout_5">
      <item row="0" column="0">
       <widget class="QRadioButton" name="bs_RadioButton">
@@ -974,7 +1001,7 @@
    <attribute name="dockWidgetArea">
     <number>4</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_2">
+   <widget class="QWidget" name="sweep_DockWidgetContents">
     <layout class="QGridLayout" name="gridLayout_4">
      <item row="2" column="0">
       <widget class="QLabel" name="label_24">
@@ -1052,7 +1079,7 @@
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_7">
+   <widget class="QWidget" name="psb_DockWidgetContents">
     <layout class="QGridLayout" name="gridLayout_7">
      <item row="0" column="0" colspan="2">
       <widget class="QRadioButton" name="psb_RadioButton">
@@ -1069,7 +1096,7 @@
       </widget>
      </item>
      <item row="0" column="4">
-      <widget class="QComboBox" name="f_multiplier_ComboBox">
+      <widget class="QComboBox" name="frequency_multiplier_ComboBox">
        <item>
         <property name="text">
          <string>4</string>
@@ -1227,7 +1254,7 @@
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_4">
+   <widget class="QWidget" name="psa_DockWidgetContents">
     <layout class="QGridLayout" name="gridLayout_10">
      <item row="0" column="0" colspan="2">
       <widget class="QRadioButton" name="psa_RadioButton">

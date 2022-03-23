@@ -450,7 +450,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
             is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
         return is_fm_running
 
-    def set_reference(self, shape=None, freq = None, mode=None, dev=None):
+    def set_reference(self, freq=None, dev=None, mode=None, shape=None):
         '''
         @param float deviation:
         @param str (or int) source: {EXT1|NOISe|LF1|LF2|INTernal|EXTernal}
@@ -522,4 +522,4 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
             actual_mode = 'High Bandwidth'
         elif actual_mode == 'LNO\n':
             actual_mode = 'Low Noise'
-        return actual_shape, actual_freq, actual_mode, actual_dev
+        return actual_freq, actual_dev, actual_mode, actual_shape
