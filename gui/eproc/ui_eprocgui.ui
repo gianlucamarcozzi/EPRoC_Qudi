@@ -766,6 +766,32 @@
        </layout>
       </widget>
      </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_14">
+       <property name="text">
+        <string>MW Frequency:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QComboBox" name="fs_frequency_pos_ComboBox">
+       <item>
+        <property name="text">
+         <string>Start value</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Center value</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Stop value</string>
+        </property>
+       </item>
+      </widget>
+     </item>
     </layout>
    </widget>
   </widget>
@@ -989,6 +1015,32 @@
          </widget>
         </item>
        </layout>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_45">
+       <property name="text">
+        <string>Magnetic Field:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QComboBox" name="bs_field_pos_ComboBox">
+       <item>
+        <property name="text">
+         <string>Start value</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Center value</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Stop value</string>
+        </property>
+       </item>
       </widget>
      </item>
     </layout>

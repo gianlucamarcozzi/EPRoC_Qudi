@@ -20,6 +20,12 @@ class MagnetBrukerDummy(Base, EprocMagnetInterface):
 
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
+        self.SETTLING_TIME = 0.05          # For small steps of magnetic field
+        self.SETTLING_TIME_LARGE = 20*self.SETTLING_TIME      # For big steps of magnetic field (reset_sweeppos)
+
+        # Lists for field sweep
+        self.sweep_list = []
+        self.remaining_fields = []
         return
 
     def on_deactivate(self):
@@ -38,4 +44,29 @@ class MagnetBrukerDummy(Base, EprocMagnetInterface):
         return 0
 
     def set_central_field(self, field=None):
+        time.sleep(self.SETTLING_TIME)
         return field
+
+    def set_sweep(self, start, stop, step):
+        start = np.round(start, 2)
+        stop = np.round(stop, 2)
+        step = np.round(step, 2)
+        self.sweep_list = np.arange(start, stop + step, step)
+        self.remaining_fields = self.sweep_list
+        self.set_central_field(start - step)
+        time.sleep(self.SETTLING_TIME)
+        return start, stop, step
+
+    def trigger(self):
+        new_field, self.remaining_fields = self.remaining_fields[0], self.remaining_fields[1:]
+        self.set_central_field(new_field)
+        return 0
+
+    def reset_sweeppos(self):
+        self.remaining_fields = self.sweep_list
+        start = self.sweep_list[0]
+        step = self.sweep_list[1] - self.sweep_list[0]
+        self.set_central_field(start - step)
+        time.sleep(self.SETTLING_TIME_LARGE)   # Additional time.sleep because of large field value change
+        return 0
+

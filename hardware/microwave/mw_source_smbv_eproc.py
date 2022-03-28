@@ -309,9 +309,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
             self._connection.write(':POW {0:f}'.format(power))
             self._connection.write('*WAI')
 
-        self._command_wait('TRIG:FSW:SOUR SING')
-        # self._command_wait('SWE:DWEL 2.')
-        # self._command_wait('TRIG:FSW:SOUR EXT')
+        self._command_wait('TRIG:FSW:SOUR EXT')
 
         actual_power = self.get_power()
         freq_list = self.get_frequency()
@@ -354,16 +352,11 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         else:
             return TriggerEdge.RISING, timing
 
-    def set_internal_trigger(self):
+    def set_int_trigger(self):
         """
         Set internal trigger to SING (one trigger equals next frequency) and to stop at the end of the frequency sweep.
         """
-        mode, is_running = self.get_status()
-        if is_running:
-            self.off()
-
         self._command_wait('TRIG:FSW:SOUR SING')
-
         return
 
     def trigger(self):
@@ -380,37 +373,7 @@ class MicrowaveSmbv(Base, MicrowaveInterface):
         self._connection.write('*TRG')
         time.sleep(self._FREQ_SWITCH_SPEED)  # that is the switching speed
         return 0
-    '''
-    def modulation_on(self):
-        # current_mode, is_running = self.get_status()
-        is_mod_running = bool(float(int(self._connection.query(':MOD?'))))
-        
-        #if is_running:
-        #    if is_mod_running:
-        #        return 0
-        #    else:
-        #        self.off()
-        
-        if not is_mod_running:
-            self._command_wait(':MOD ON')
 
-        return 0
-
-    def modulation_off(self):
-        # current_mode, is_running = self.get_status()
-        is_mod_running = bool(float(int(self._connection.query(':MOD?'))))
-        
-        #if is_running:
-        #    if not is_mod_running:
-        #        return 0
-        #    else:
-                self.off()
-        
-        if is_mod_running:
-            self._command_wait(':MOD OFF')
-
-        return 0
-    '''
     def lf_on(self):
         """Turn on the low frequency output."""
         is_lf_running = bool(float(int(self._connection.query(':LFO?'))))

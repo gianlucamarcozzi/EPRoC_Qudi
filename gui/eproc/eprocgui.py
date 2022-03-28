@@ -121,16 +121,14 @@ class EPRoCGui(GUIBase):
     sigPsaOn = QtCore.Signal()
     sigPsaOff = QtCore.Signal()
 
-    sigFsParamsChanged = QtCore.Signal(float, float, float, float, float)
-    sigBsParamsChanged = QtCore.Signal(float, float, float, float, float)
+    sigFsParamsChanged = QtCore.Signal(float, float, float, float, float, int)
+    sigBsParamsChanged = QtCore.Signal(float, float, float, float, float, int)
     sigScanParamsChanged = QtCore.Signal(int, int)
     sigRefParamsChanged = QtCore.Signal(float, float, str)
     sigLiaParamsChanged = QtCore.Signal(str, float, str, float, float, float, float, float, float, int, str, str)
     sigFrequencyMultiplierChanged = QtCore.Signal(int)
     sigPsbParamsChanged = QtCore.Signal(float, float, float, float)
     sigPsaParamsChanged = QtCore.Signal(float, float, float, float)
-    sigMotorParamsChanged = QtCore.Signal(float, float, float, float, float, float, float, float, float, float, float,
-                                          float)
 
     sigSaveMeasurement = QtCore.Signal(str)
 
@@ -301,12 +299,14 @@ class EPRoCGui(GUIBase):
         self._mw.fs_start_DoubleSpinBox.editingFinished.connect(self.change_fs_params)
         self._mw.fs_step_DoubleSpinBox.editingFinished.connect(self.change_fs_params)
         self._mw.fs_stop_DoubleSpinBox.editingFinished.connect(self.change_fs_params)
+        self._mw.fs_frequency_pos_ComboBox.currentTextChanged.connect(self.change_fs_params)
 
         self._mw.bs_frequency_DoubleSpinBox.editingFinished.connect(self.change_bs_params)
         self._mw.bs_mw_power_DoubleSpinBox.editingFinished.connect(self.change_bs_params)
         self._mw.bs_start_DoubleSpinBox.editingFinished.connect(self.change_bs_params)
         self._mw.bs_step_DoubleSpinBox.editingFinished.connect(self.change_bs_params)
         self._mw.bs_stop_DoubleSpinBox.editingFinished.connect(self.change_bs_params)
+        self._mw.bs_field_pos_ComboBox.currentTextChanged.connect(self.change_bs_params)
 
         self._mw.lia_range_ComboBox.currentTextChanged.connect(self.change_lia_params)
         self._mw.lia_coupling_ComboBox.currentTextChanged.connect(self.change_lia_params)
@@ -359,7 +359,7 @@ class EPRoCGui(GUIBase):
         self.sigToggleModulationOn.connect(self._eproc_logic.modulation_on, QtCore.Qt.QueuedConnection)
         self.sigToggleModulationOff.connect(self._eproc_logic.modulation_off, QtCore.Qt.QueuedConnection)
         self.sigFsOn.connect(self._eproc_logic.fs_on, QtCore.Qt.QueuedConnection)
-        self.sigFsOff.connect(self._eproc_logic.fs_off, QtCore.Qt.QueuedConnection)
+        self.sigFsOff.connect(self._eproc_logic.bs_on, QtCore.Qt.QueuedConnection)
         self.sigLiaExtRefOn.connect(self._eproc_logic.lia_ext_ref_on, QtCore.Qt.QueuedConnection)
         self.sigLiaExtRefOff.connect(self._eproc_logic.lia_ext_ref_off, QtCore.Qt.QueuedConnection)
         self.sigPsbOn.connect(self._eproc_logic.psb_on, QtCore.Qt.QueuedConnection)
@@ -925,16 +925,6 @@ class EPRoCGui(GUIBase):
             self._mw.psa_current_max_outp2_DoubleSpinBox.setValue(param)
             self._mw.psa_current_max_outp2_DoubleSpinBox.blockSignals(False)
 
-    def change_bs_params(self):
-        """ Change parameters from the field sweep Dock Widget """
-        frequency = self._mw.bs_frequency_DoubleSpinBox.value()
-        power = self._mw.bs_mw_power_DoubleSpinBox.value()
-        start = self._mw.bs_start_DoubleSpinBox.value()
-        step = self._mw.bs_step_DoubleSpinBox.value()
-        stop = self._mw.bs_stop_DoubleSpinBox.value()
-        self.sigBsParamsChanged.emit(start, step, stop, frequency, power)
-        return
-
     def change_fs_params(self):
         """ Change parameters from the field sweep Dock Widget """
         field = self._mw.fs_field_DoubleSpinBox.value()
@@ -942,7 +932,19 @@ class EPRoCGui(GUIBase):
         start = self._mw.fs_start_DoubleSpinBox.value()
         step = self._mw.fs_step_DoubleSpinBox.value()
         stop = self._mw.fs_stop_DoubleSpinBox.value()
-        self.sigFsParamsChanged.emit(start, step, stop, field, power)
+        freq_pos = self._mw.fs_frequency_pos_ComboBox.currentIndex()
+        self.sigFsParamsChanged.emit(start, step, stop, field, power, freq_pos)
+        return
+
+    def change_bs_params(self):
+        """ Change parameters from the field sweep Dock Widget """
+        frequency = self._mw.bs_frequency_DoubleSpinBox.value()
+        power = self._mw.bs_mw_power_DoubleSpinBox.value()
+        start = self._mw.bs_start_DoubleSpinBox.value()
+        step = self._mw.bs_step_DoubleSpinBox.value()
+        stop = self._mw.bs_stop_DoubleSpinBox.value()
+        field_pos = self._mw.bs_field_pos_ComboBox.currentIndex()
+        self.sigBsParamsChanged.emit(start, step, stop, frequency, power, field_pos)
         return
 
     def change_lia_params(self):

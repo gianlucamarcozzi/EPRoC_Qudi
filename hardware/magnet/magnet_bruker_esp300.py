@@ -26,6 +26,13 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
     def on_activate(self):
         """ Initialisation performed during activation of the module. """
         self._timeout = self._timeout * 1000
+        self.SETTLING_TIME = 0.05  # For small steps of magnetic field
+        self.SETTLING_TIME_LARGE = 20 * self.SETTLING_TIME  # For big steps of magnetic field (reset_sweeppos)
+
+        # Lists for field sweep
+        self.sweep_list = []
+        self.remaining_fields = []
+
         self.rm = visa.ResourceManager()
         try:
             self._connection = self.rm.open_resource(self._address,
@@ -48,19 +55,15 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
         processing it.
         @param command_str: The command to be written
         """
-        self._connection.write(command_str)
-        self._connection.write('*WAI')
-        while int(float(self._connection.query('*OPC?'))) != 1:
-            time.sleep(0.2)
         return
 
     def off(self):
         return 0
 
     def set_central_field(self, field=None):
-        field = round(field, 2)
+        field = np.round(field, 2)
         self._connection.write('CF{}'.format(field))
-        time.sleep(0.05)  # is this enough?
+        time.sleep(self.SETTLING_TIME)  # is this enough?
         # self._connection.write('LE')
         # led_status = self._connection.read()
         # while led_status == 1:
@@ -68,12 +71,25 @@ class MagnetBrukerESP300(Base, EprocMagnetInterface):
         #     led_status = self._connection.query('LE')
         return field
 
-    def set_sweep(self, cf=None, width=None, wait_time=None):
-        self._connection.write('CF{}'.format(cf))
-        time.sleep(1)
-        field = self._connection.write('FC')
-        self._connection.write('SW{}'.format(width))
-        self._connection.write('TM{}'.format(wait_time))
-        time.sleep(1)
-        field = self._connection.write('FC')
-        return cf, width, wait_time
+    def set_sweep(self, start, stop, step):
+        start = np.round(start, 2)
+        stop = np.round(stop, 2)
+        step = np.round(step, 2)
+        self.sweep_list = np.arange(start, stop + step, step)
+        self.remaining_fields = self.sweep_list
+        self.set_central_field(start - step)
+        time.sleep(self.SETTLING_TIME)
+        return start, stop, step
+
+    def trigger(self):
+        new_field, self.remaining_fields = self.remaining_fields[0], self.remaining_fields[1:]
+        self.set_central_field(new_field)
+        return 0
+
+    def reset_sweeppos(self):
+        self.remaining_fields = self.sweep_list
+        start = self.sweep_list[0]
+        step = self.sweep_list[1] - self.sweep_list[0]
+        self.set_central_field(start - step)
+        time.sleep(self.SETTLING_TIME_LARGE)   # Additional waiting time because of large field value change
+        return 0
