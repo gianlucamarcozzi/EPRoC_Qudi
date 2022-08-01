@@ -271,7 +271,6 @@ class MicrowaveDummy(Base, MicrowaveInterface):
         """
         Set internal trigger to SING (one trigger equals next frequency) and to stop at the end of the frequency sweep.
         """
-        self._command_wait('TRIG:FSW:SOUR SING')
         return
 
     def trigger(self):
@@ -288,36 +287,17 @@ class MicrowaveDummy(Base, MicrowaveInterface):
 
     def lf_on(self):
         """Turn on the low frequency output."""
-        is_lf_running = bool(float(int(self._connection.query(':LFO?'))))
-        if not is_lf_running:
-            self._command_wait(':LFO ON')
-        while not is_lf_running:
-            time.sleep(0.2)
-            is_lf_running = bool(float(int(self._connection.query(':LFO?'))))
         return True
 
     def lf_off(self):
         """Turn off the low frequency output."""
-        is_lf_running = bool(float(int(self._connection.query(':LFO?'))))
-        if is_lf_running:
-            self._command_wait(':LFO OFF')
-        while is_lf_running:
-            time.sleep(0.2)
-            is_lf_running = bool(float(int(self._connection.query(':LFO?'))))
         return False
 
     def fm_on(self):
         """ Turn on the frequency modulation."""
-        is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
-        if not is_fm_running:
-            self._command_wait(':FM1:STAT ON')
-        while not is_fm_running:
-            time.sleep(0.2)
-            is_fm_running = bool(float(int(self._connection.query(':FM1:STAT?'))))
         return True
 
     def fm_off(self):
-
         return False
 
     def set_reference(self, freq=None, dev=None, mode=None, shape=None):

@@ -966,7 +966,11 @@ class EPRoCGui(GUIBase):
         return
 
     def on_off_sweep(self, is_checked):
-        """Interchange between microwave and field sweep"""
+        """ Switch between frequency sweep and field sweep.
+
+        @param is_checked:
+        @return:
+        """
         if is_checked:
             self.sigFsOn.emit()
         else:

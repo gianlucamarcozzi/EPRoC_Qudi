@@ -55,7 +55,7 @@ class EPRoCLogic(GenericLogic):
         missing='warn',
         converter=lambda x: MicrowaveMode[x.upper()])
 
-    # these go here or in on_activate()?
+    # Number of total sweeps and total accumulations. Not to confuse with the elapsed quantities.
     n_sweep = StatusVar('n_sweep', 1)
     n_accumulation = StatusVar('n_accumulation', 10)
 
@@ -156,8 +156,8 @@ class EPRoCLogic(GenericLogic):
         self._initialize_eproc_plots()
         # Raw data array
         self.eproc_raw_data = np.zeros(
-             self.n_accumulation,
-            [self.n_sweep,
+             [self.n_accumulation,
+             self.n_sweep,
              self.eproc_plot_x.size,
              4]  # for 4 channels, but this should become a method get_lockin_channels of some sort
         )
@@ -761,63 +761,17 @@ class EPRoCLogic(GenericLogic):
         tag_raw = tag + '_rawdata'
         ending = '.txt'
 
-
-        # Data, on which the average on accumulations and sweeps was performed
-        eproc_data_list = [self.eproc_plot_x]
-
-        for channel in range(len(self.eproc_raw_data[0, 0, 0, :])):
-            eproc_data_list.append(self.eproc_plot_y[:, channel])
-
-        # Raw data, only the average on the accumulations was performed
-        eproc_raw_data_list = [self.eproc_plot_x]
-        for channel in range(len(self.eproc_raw_data[0, 0, 0, :])):
-            # fix: this works if the sweep is not finished, otherwise it doesnt work!!
-            if self.elapsed_sweeps == self.n_sweep:
-                for sweep in range(self.elapsed_sweeps):
-                    eproc_raw_data_list.append(np.mean(self.eproc_raw_data[:, sweep, :, channel],
-                                                       axis=0,
-                                                       dtype=np.float64))
-            else: # ?????????????????
-                for sweep in range(self.elapsed_sweeps + 1):
-                    eproc_raw_data_list.append(np.mean(self.eproc_raw_data[:, sweep, :, channel],
-                                                       axis=0,
-                                                       dtype=np.float64))
-
-        eproc_data = OrderedDict()
-        eproc_raw_data = OrderedDict()
+        ############################################
+        # Save parameters (as str for readability) #
+        ############################################
         parameters = OrderedDict()
-
         if self.is_fs:
-            cols = 'Frequency\t\tChannel 1\t\tChannel 2\t\tChannel 3\t\tChannel 4'
-            eproc_data[cols] = np.array(eproc_data_list).transpose()
-            eproc_raw_data['Column 0: frequency\n'
-                           'From column 1 to column {0}: channel 1, sweep 1 to sweep {0}\n'
-                           'From column {1} to column {2}: channel 2, sweep 1 to sweep {0}\n'
-                           'From column {3} to column {4}: channel 3, sweep 1 to sweep {0}\n'
-                           'From column {5} to column {6}: channel 4, sweep 1 to sweep {0}\n'.format(
-                (self.elapsed_sweeps + 1), (self.elapsed_sweeps + 2), 2 * (self.elapsed_sweeps + 1),
-                (2 * (self.elapsed_sweeps + 1) + 1), (3 * (self.elapsed_sweeps + 1)),
-                (3 * (self.elapsed_sweeps + 1) + 1), (4 * (self.elapsed_sweeps + 1)))] = \
-                np.array(eproc_raw_data_list).transpose()
-            # Saving parameters as str for readability
             parameters['Magnetic Field (G)'] = str(self.fs_field)
             parameters['Microwave Power (dBm)'] = str(self.fs_mw_power)
             parameters['Start Frequency (Hz)'] = str(self.fs_start)
             parameters['Step Size (Hz)'] = str(self.fs_step)
             parameters['Stop Frequency (Hz)'] = str(self.fs_stop)
         else:
-            cols = 'Field\t\tChannel 1\t\tChannel 2\t\tChannel 3\t\tChannel 4'
-            eproc_data[cols] = np.array(eproc_data_list).transpose()
-            eproc_raw_data['Column 0: field\n'
-                           'From column 1 to column {0}: channel 1, sweep 1 to sweep {0}\n'
-                           'From column {1} to column {2}: channel 2, sweep 1 to sweep {0}\n'
-                           'From column {3} to column {4}: channel 3, sweep 1 to sweep {0}\n'
-                           'From column {5} to column {6}: channel 4, sweep 1 to sweep {0}\n'.format(
-                (self.elapsed_sweeps + 1), (self.elapsed_sweeps + 2), 2 * (self.elapsed_sweeps + 1),
-                (2 * (self.elapsed_sweeps + 1) + 1), (3 * (self.elapsed_sweeps + 1)),
-                (3 * (self.elapsed_sweeps + 1) + 1), (4 * (self.elapsed_sweeps + 1)))] = \
-                np.array(eproc_raw_data_list).transpose()
-            # Saving parameters as str for readability
             parameters['Microwave Frequency (Hz)'] = str(self.bs_frequency)
             parameters['Microwave Power (dBm)'] = str(self.bs_mw_power)
             parameters['Start Field (G)'] = str(self.bs_start)
@@ -849,12 +803,58 @@ class EPRoCLogic(GenericLogic):
         else:
             parameters['Lockin Internal Modulation Frequency (Hz)'] = self.lia_int_freq
 
+        ###############
+        # Save x-axis #
+        ###############
+        if self.is_fs:
+            eproc_data = {'Frequency (Hz)': self.eproc_plot_x}
+            eproc_raw_data = {'Frequency (Hz)': self.eproc_plot_x}
+        else:
+            eproc_data = {'Frequency (Hz)': self.eproc_plot_x}
+            eproc_raw_data = {'Frequency (Hz)': self.eproc_plot_x}
+
+        ####################
+        # Save y-axis data #
+        ####################
+        for i in range(len(self.eproc_raw_data[0, 0, 0, :])):
+            if self.elapsed_sweeps == 0:
+                # Acquisition stopped before the first sweep was completed
+                # The last points will have value equal to zero
+                eproc_y_data = np.mean(self.eproc_raw_data[:, :self.elapsed_sweeps + 1, :, :],
+                                       axis=(0, 1),
+                                       dtype=np.float64)
+            else:
+                # If the acquisition was stopped in the middle of a sweep: the incomplete sweep is discarded
+                eproc_y_data = np.mean(self.eproc_raw_data[:, :self.elapsed_sweeps, :, :],
+                                       axis=(0, 1),
+                                       dtype=np.float64)
+            eproc_data['Channel {} (mV)'.format(i + 1)] = eproc_y_data[:, i]
+
         self._save_logic.save_data(eproc_data,
                                    filepath=filepath,
                                    parameters=parameters,
                                    filename=tag + ending,
                                    fmt='%.6e',
                                    delimiter='\t')
+
+        ########################
+        # Save y-axis raw data #
+        ########################
+        if self.elapsed_sweeps == self.n_sweep:
+            # Acquisition stopped before the first sweep was completed
+            # The last points will have value equal to zero
+            self.raw_data_avg = np.mean(self.eproc_raw_data[:, :self.elapsed_sweeps, :, :],
+                                   axis=0,
+                                   dtype=np.float64)
+        else:
+            # If the acquisition was stopped in the middle of a sweep: save also the incomplete sweep
+            self.raw_data_avg = np.mean(self.eproc_raw_data[:, :self.elapsed_sweeps + 1, :, :],
+                                   axis=0,
+                                   dtype=np.float64)
+
+        for ch in range(len(self.raw_data_avg[0, 0, :])):
+            for sw in range(len(self.raw_data_avg[:, 0, 0])):
+                eproc_raw_data['Ch {0} sw {1} (mV)'.format(ch + 1, sw + 1)] = self.raw_data_avg[sw, :, ch]
 
         self._save_logic.save_data(eproc_raw_data,
                                    filepath=filepath,
@@ -863,5 +863,5 @@ class EPRoCLogic(GenericLogic):
                                    fmt='%.6e',
                                    delimiter='\t')
 
-        self.log.info('eproc data saved to:\n{0}'.format(filepath))
+        self.log.info('EPRoC data saved to:\n{0}'.format(filepath))
         return
